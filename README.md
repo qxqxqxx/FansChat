@@ -2,10 +2,10 @@ This is a sandbox mod about Manaka posting lewd photos of herself online.
 She must build her fanbase to earn RP while hiding her identity.
 It is inspired by Snapchat, Onlyfans, and other exhibition games :)
 
-Requires CustomMissionsv2
-https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-0-version-2-0-3.263276/
-and Hunted
-https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-0-version-2-0-3.263276/post-19194156
+Requires CustomMissionsv2:
+  https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-0-version-2-0-3.263276/
+and Hunted:
+  https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-0-version-2-0-3.263276/post-19194156
 
 This mod not possible without the efforts of others developers. I have sometimes copied their code without permission, but here are their credits:
 <details>
@@ -30,7 +30,7 @@ Custom Missions V2 examples
 Open FansChat in Messenger. Click "Photo Now" to immediately post a photo using the current camera angle.
 Or you can press V on keyboard to take photo instantly from current camera angle.
 RP Score is awarded based on:
--How many lewd conditions are visible in the photo, and how visible they are
+- How many lewd conditions are visible in the photo, and how visible they are
 - How risky the photo is
 - How many fans Manaka has
 
