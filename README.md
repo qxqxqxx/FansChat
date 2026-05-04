@@ -60,7 +60,7 @@ The condition RP is loosely based on:
 - Some conditions reduce the RP score, such as being invisible
 - Currently this system does not handle negative conditions eg "!Exposed_Front", so if you add these conditions, they may get scored incorrectly.
 - If the condition does not include "Expose" or "Vis", then it assumes exposure is not a requirement, and visibility check is skipped (maximum visibility points are awarded)
-- 
+  
 </details>
 
 <details><summary>Visibility</summary>
@@ -124,6 +124,7 @@ Hunter integration added by Nn312 in Fanschat v14
 - Hype also resets when returning home.
 - Hype gain is based on the single highest valued condition in the photo.
 - Hype gain is opposed by 'fan boredom', an optional setting that penalises low-scoring photos.
+- 
 </details>
 
 <details><summary>VIP Requests (by Nn312) </summary>
