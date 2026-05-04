@@ -1,0 +1,274 @@
+UnequipToys:
+	UnequipAdultToy("AnalPlug", "Vibrator", "EyeMask", "Handcuff", "KeyHandcuff", "TimerHandcuff", "TitRotor", "KuriRotor", "PistonFuta", "PistonAnal", "PistonPussy")
+
+### Packaged with CustomMissionsv2
+#panelmode == 0 no change
+#panelmode == 1 show when conditions met and inside zone
+#panelmode == 2 show when inside zone
+generic_listener:
+	if duration == null
+		duration = 0
+	if maxduration == null
+		maxduration = 0
+	if panelmode == null
+		panelmode = 0
+	if zone.Inside()
+		if panelmode == 2
+			missionpanel.SetVisible(true)
+		if condition.Check()
+			if panelmode == 1
+				missionpanel.SetVisible(true)
+			duration = duration + _timediff
+			zone.SetColor(0.5,1,0.5)
+			if duration >= maxduration
+				if nextparameters != null
+					thread.Goto(nextcheckpoint, lastzone = zone, parameters=nextparameters)
+				else
+					thread.Goto(nextcheckpoint, lastzone = zone)
+		else
+			if reset
+				duration = 0
+			zone.SetColor(1,1,0.5)				
+		if maxduration>0
+			missionpanel.SetGaugeProgress(duration/maxduration)
+	else
+		zone.SetColor(1,0.75,0.5)
+		if panelmode >= 1
+			missionpanel.SetVisible(false)
+		if reset
+			duration = 0
+		
+generic_travellistener:
+	if violated == null
+		violated = false
+		missionpanel.SetGaugeProgress(0)		
+	if (zone.Inside() & !violated)
+		if nextparameters != null
+			thread.Goto(nextcheckpoint, parameters=nextparameters)
+		else
+			thread.Goto(nextcheckpoint)
+	elseif (lastzone.Inside())
+		if violated
+			violated = false
+			zone.SetColor(1,0.75,0.5)
+			zone.SetVisible(true)
+			lastzone.SetVisible(false)
+			missionpanel.SetText(text)
+			missionpanel.SetGaugeProgress(0)
+	elseif (!condition.Check())
+		if !violated	
+			violated = true
+			lastzone.SetColor(1,0.5,0.5)
+			lastzone.SetVisible(true)
+			zone.SetVisible(false)
+			missionpanel.SetText(violatetext)
+			missionpanel.SetGaugeProgress(0)
+	else
+		dlast = lastzone.DistanceToLastPosition()
+		dnext = zone.DistanceToNearest()
+		if (dlast != null)
+			missionpanel.SetGaugeProgress(dlast/(dlast+dnext))
+
+wait_listener:
+	if time == null
+		time = 0
+	time = time + _timediff
+	if time>duration
+		if nextparameters != null
+			thread.Goto(nextcheckpoint, lastzone = zone, parameters=nextparameters)
+		else
+			thread.Goto(nextcheckpoint, lastzone = zone)
+
+	scene_changed:
+	if _stagechanged
+		thread.Goto(nextcheckpoint)
+
+	
+### from Hunted mod
+# developer : hacumefetitopikt.com
+SqrDistance:
+	dx = _args[0].x - _args[1].x
+	dy = _args[0].y - _args[1].y
+	dz = _args[0].z - _args[1].z
+	_result = (dx * dx) + (dy * dy) + (dz * dz)
+	
+	
+Normalize: #(v)
+	v = _args[0]
+	length = Vector3Length(v)
+	if length < 0.0001
+		_result = v   # avoid divide-by-zero
+	else
+		_result = Vector3Scale(v, 1 / length)
+		
+	
+get_last_seen_direction: #player_pos, player_last_pos, npc_pos
+
+	player_pos = _args[0]
+	player_last_pos = _args[1]
+	npc_pos = _args[2]
+
+	movement = Vector3Sub(player_pos, player_last_pos)
+
+	if Vector3Length(movement) < 0.01
+		# fallback: use direction from NPC to last seen position
+		movement = Vector3Sub(player_pos, npc_pos)
+
+	movement = Normalize(movement)
+	
+	_result = movement
+	
+PI = 3.14159
+
+atan2: #(y, x) 
+	if y == null
+		y = _args[0]
+		x = _args[1]
+		
+	if x > 0
+		_result = Atan(y / x) 
+		
+	elseif x < 0
+		if y >= 0
+			_result = Atan(y / x) + PI 
+		else 
+			_result = Atan(y / x) - PI 
+	else # x == 0 
+		if y > 0
+			_result = PI / 2 
+		elseif y < 0
+			_result = -PI / 2 
+		else
+			_result = 0 # undefined, but fine
+			
+yaw_from_quat: #q
+	if q == null
+		q = _args[0]
+	
+	y = q.ry
+	w = q.rw
+	
+	sin_term = 2 * (w * y)
+	cos_term = 1 - 2 * (y * y)
+	
+	yaw_rad = atan2(sin_term, cos_term)
+	Log("FC.Common :  yaw_from_quat " +yaw_rad)
+	_result = yaw_rad * 180 / PI
+
+clamp_angle: # a
+	a = _args[0]
+	while a > 180
+		a = a - 360
+		
+	while a < (-180)
+		a = a + 360
+		
+	_result = a
+
+slerp_angle: #(a0, a1, t)
+	a0 = _args[0]
+	a1 = _args[1]
+	t = _args[2]
+	
+	delta = a1 - a0
+	
+	# wrap to [-180, 180]
+	delta = clamp_angle(delta)
+		
+	_result = a0 + (delta * t)
+
+quat_from_yaw:
+	angle_deg = _args[0]
+	
+	half = (angle_deg * PI / 180) * 0.5
+
+	_result = Quaternion(0, Sin(half), 0, Cos(half))
+
+slerp_yaw_quat: #(q, target_angle_deg, t)
+	if q == null
+		q = _args[0]
+		target_angle_deg = _args[1]
+		t = _args[2]
+	
+	# 1. Extract current yaw
+	a0 = yaw_from_quat(q)
+
+	# 2. Interpolate angle
+	a = slerp_angle(a0, target_angle_deg, t)
+
+	# 3. Convert back to quaternion
+	_result = quat_from_yaw(a)
+
+
+yaw_from_direction: #dir
+	dir = _args[0]
+	
+	# dir.x and dir.z define the horizontal direction
+	
+	yaw_rad = atan2(dir.x, dir.z)
+	_result = yaw_rad * 180 / PI
+	
+	
+rotate_to_face: # (npc, npcB_position, t):
+	npc = _args[0]
+	
+	npcB_pos = _args[1]
+	t = _args[2]
+	
+	
+	# 1. direction vector
+	dir = Vector3Sub(npcB_pos, npc.GetPosition())
+	
+	# 2. convert to yaw
+	target_yaw = yaw_from_direction(dir)
+	
+	
+	_result = rotate_towards(npc=npc, look_target=target_yaw, ignore_last_turn=true)
+
+
+rotate_towards: #npc, look_target=look_target, ignore_last_turn=false
+	#return true when rotation is finished, otherwise rotate npc by a step towards look_target
+
+	current = yaw_from_quat(npc.GetPosition())
+	target  = look_target
+
+	delta = target - current
+	delta = clamp_angle(delta)
+
+	maxTurn = 5   # degrees per frame
+	
+	#Log(delta)
+	if Abs(delta) <= maxTurn
+		angle = target
+		_result = true
+	else
+		angle = current + Sign(delta) * maxTurn
+		_result = false
+
+	new_q = quat_from_yaw(angle)
+
+	if (!_result) || (ignore_last_turn != true) && (angle < 1)
+		npc.Warp(rotation = new_q) #janky, but best so far
+
+
+### From Police Hunt / NSFW
+# developer : hacumefetitopikt.com
+contains:
+	list = _args[0]
+	id = _args[1]
+
+	i = list.Count()
+
+	_result = false
+
+	while i > 0
+		i = i - 1
+		if list[i] == id
+			_result = true
+			i = 0
+
+lerp:
+	x = _args[0]
+	y = _args[1]
+	a = _args[2]
+	_result = x * (1 - a) + y * a

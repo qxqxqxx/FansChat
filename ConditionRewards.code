@@ -1,0 +1,1024 @@
+## CONDITION REWARDS 
+# wip v0.83
+# originally for FansChat by eicosa, but you may use it for anything you want
+# At the bottom of this file is a big set of manually defined 'hard coded' subconditions intended for use only within FansChat.
+# But you may want to check:
+# DefaultScoreTable - all the conditions and their reward/penalty
+# ConditionsToSnapshotData - main logic for checking the visibility of all conditions
+
+#--------------------
+##  Visibiliy System
+#--------------------
+# Visibility ratings range from 0 to 1, and are calculated for every True condition.
+# Visibility Bonuses and penalties add together, then multiply all visibility gains.
+# If the sum of these is positive, it may
+# - Widen the allowed 'facing' angle threshold
+# - Allow body regions to count as 'in focus' when they might otherwise be out of view
+# - Tip over a failed checked into passing
+visUpperBonus= 0.33 # Exposed_Upper visibility should be a very wide arc around the front of manaka
+visNudityBonus=0.2 # overall visibility bonus when fully naked (conNaked "SubCondition_Vis_Naked")
+visPoseBonus=0.3 # visibility bonus when manaka is 'most likely' doing a pose, and possibly other actions.
+visMedBonus=0.4 # cosplays that slightly protrude from from Manaka's silhouette
+visHighBonus=0.5 # cosplays that are visible from almost any camera angle / exposure
+visNegPenalty=0.1 # cosplays that make conditions harder to identify
+
+# This penalty not combined with the above. It's directly subtracted when a Exposed_ condition fails a visibility check.
+# Raising this value makes multi-exposure conditions like (Exposed_Hip,Exposed_Upper) rate similar to AND logic, requiring both checks to score high. Lowever values work like OR logic, requiring only one check to score high.
+# eg. when camera is behind Manaka, a condition with "Exposed_Front" has visibility -= visFlatPenalty.
+visFlatPenalty=0.3
+
+# When "Hides_Breast" is found, this will multiply against all subsequent checks in visibility, and against Vis_Breast for score.
+visModHidden=0.5
+
+# DefaultScoreTable
+# A set of default conditions and their RP scores (or penalties) 
+# See also: MakeScoreTable, ConditionsToSnapshotData, ScoreSnapshotData
+# You can override the RP values, or add new ones, with AppendScoreTable
+DefaultScoreTable:
+	table = MakeScoreTable() # init / construct
+	#eg: AppendScoreTable(table, "Condition_String", RP, "Condition description for UI")
+	# - Visibility or RP Reducers - these should be first in the table so they get checked first and can apply penalties visibility etc
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_kanban,(Exposed_Front,Exposed_Upper),(SubCondition_Vis_Face,SubCondition_Vis_Breast,SubCondition_Hides_Breast,SubCondition_Vis_High)]", 66,"Pervert Sign") # : True "Pervert Sign" - gives RP but reduces visibility of breast conditions
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_rain_coat,SubCondition_Hides_Breast,SubCondition_Hides_Groin,SubCondition_Vis_Neg]", 33,"Raincoat") # : True "Raincoat" - gives RP but reduces visibility of other conditions
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_rubber_suit,SubCondition_Vis_Neg]", 33,"Rubber Suit") #: True "Rubber Suit"  - gives RP but reduces visibility of other conditions
+
+
+	#eg:	AppendScoreTable(table, "Condition_String", RP, "Condition description for UI")
+	table = AppendScoreTable(table, "Exposed_None", -10) # example penalty 
+	table = AppendScoreTable(table, "Exposed_Front", 19, "Exposed Front") # Baseline front exposure. Visibility requires Manaka facing camera.
+	table = AppendScoreTable(table, "Exposed_Upper", 25, "Exposed Upper") # Baseline upper exposure. Visibility requires Manaka's body being in frame, so it almost always scores.
+	table = AppendScoreTable(table, "[(Exposed_HipCrouch,Exposed_Hip),SubCondition_Vis_Groin]", 20, "Exposed Groin") # Baseline Groin check. HipCrouch and Hip are separate exposure states, but we usually don't want the scores to stack, so they are generally combined
+	table = AppendScoreTable(table, "[HandcuffsBack,(Exposed_HipCrouch,SubCondition_Vis_Groin,SubCondition_Vis_High)]", 33, "Handcuffs behind back") # Exposed_HipCrouch triggers a 'behind manaka' visibility check
+	table = AppendScoreTable(table, "[HandcuffsObject,(Exposed_Front,SubCondition_Vis_Groin,SubCondition_Vis_High)]", 66, "Handcuffed in place")
+	table = AppendScoreTable(table, "[Peeing,!Exposed_None]", 25, "Peeing") #Exposed_ tags just to trigger visibility check
+	table = AppendScoreTable(table, "[Peeing, Exposed_None]", 15, "Peeing") #Peeing while fully clothed is still worth something I guess?
+	table = AppendScoreTable(table, "[(InLight,IsDayTime),!Exposed_None]", 20, "Good Lighting")
+	table = AppendScoreTable(table, "[Sitting, Exposed_Hip]", 5, "Sitting with modest exposure") # small sitting bonus on top of existing RP gains
+	table = AppendScoreTable(table, "[Sitting, Exposed_Front]", 11, "Sitting") 
+	table = AppendScoreTable(table, "[Sitting, Exposed_Upper]", 15, "Sitting") 
+	table = AppendScoreTable(table, "[Sitting, Exposed_All,SubCondition_Vis_Naked]", 33, "Sitting fully naked") 
+	table = AppendScoreTable(table, "[Dashing,SubCondition_Exposed_Any]", 50, "Dashing")
+	table = AppendScoreTable(table, "[Futanari,Exposed_HipCrouch,Exposed_Front]", 33, "Futanari")
+	table = AppendScoreTable(table, "[InOpenToilet,(Exposed_Hip,Exposed_Upper,SubCondition_Vis_Groin)]", 50, "Open toilet stall exposure")
+	table = AppendScoreTable(table, "[Bukkake,Futanari]", 100, "Bukkake")
+	table = AppendScoreTable(table, "[NearNPC,!Exposed_None]", 33, "Proximity to others")
+	table = AppendScoreTable(table, "[IsDayTime,NPCArea,!Exposed_None]", 30, "Broad daylight") 
+	table = AppendScoreTable(table, "[!IsDayTime,NPCArea,!Exposed_None]", 20, "Public exposure") # in public
+
+	#NPC Visibility
+	table = AppendScoreTable(table, "[Watched,!Peeing,!ShowingOff,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 30, "Being watched")
+	table = AppendScoreTable(table, "[Watched,Peeing,!ShowingOff,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 50, "Being Watched Peeing")
+	table = AppendScoreTable(table, "[Watched,Peeing,ShowingOff,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 70, "Being Stared at while Peeing")
+
+	# Orgasm General
+	table = AppendScoreTable(table, "[Orgasm,SubCondition_NotAll,SubCondition_Exposed_Any,!NearNPC,!NPCArea]", 44, "Orgasm in Private")
+	table = AppendScoreTable(table, "[Orgasm,SubCondition_NotAll,SubCondition_Exposed_Any,NPCArea]", 55, "Orgasm in Public")
+	table = AppendScoreTable(table, "[Orgasm,SubCondition_NotAll,SubCondition_Exposed_Any,NearNPC,NPCArea]", 66, "Orgasm with Public")
+	table = AppendScoreTable(table, "[Orgasm,SubCondition_NotAll,SubCondition_Exposed_Any,NearNPC,NPCArea,(InLight,IsDayTime),!Peeing]", 77, "Public Orgasm with Light")
+	table = AppendScoreTable(table, "[Orgasm,SubCondition_NotAll,SubCondition_Exposed_Any,NearNPC,NPCArea,(InLight,IsDayTime),Peeing]", 88, "Public Orgasm while Peeing")
+
+	table = AppendScoreTable(table, "[Orgasm,Exposed_All,!NearNPC,!NPCArea]", 55, "Naked Orgasm in Private")
+	table = AppendScoreTable(table, "[Orgasm,Exposed_All,NPCArea]", 77, "Naked Orgasm in Public")
+	table = AppendScoreTable(table, "[Orgasm,Exposed_All,NearNPC,NPCArea]", 88, "Naked Orgasm with Public")
+	table = AppendScoreTable(table, "[Orgasm,Exposed_All,NearNPC,NPCArea,(InLight,IsDayTime),!Peeing]", 99, "Naked Public Orgasm with Light")
+	table = AppendScoreTable(table, "[Orgasm,Exposed_All,NearNPC,NPCArea,(InLight,IsDayTime),Peeing]", 111, "Naked Public Orgasm while Peeing")
+
+	# When the NPC Manaka is "Showing off" to is included in the photo
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_Ninja,!Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 33, "Flashing an NPC")
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_VeryLow,!Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 44, "Unashamed Flashing an NPC")
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_Low,!Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 55, "Confident Flashing an NPC") 
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_Medium,!Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 66, "Provocative Flashing an NPC") 	
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_High,!Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 77, "Flagrant Flashing an NPC") 	
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_VeryHigh,!Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 88, "Perverse Flashing an NPC") 	
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_Extreme,!Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 99, "GODLIKE Flashing an NPC") 	
+
+	# Orgasm + Showing Off
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_Ninja,Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 133, "Unashamed Flashing an NPC")
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_VeryLow,Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 144, "Unashamed Flashing an NPC")
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_Low,Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 155, "Confident Flashing an NPC") 
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_Medium,Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 166, "Provocative Flashing an NPC") 	
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_High,Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 177, "Flagrant Flashing an NPC") 	
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_VeryHigh,Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 188, "Perverse Flashing an NPC") 	
+	table = AppendScoreTable(table, "[ShowingOff,SubCondition_Detection_Extreme,Orgasm,SubCondition_Vis_NPC,SubCondition_Exposed_Any]", 199, "GODLIKE Flashing an NPC") 	
+
+	# Common penalties
+	table = AppendScoreTable(table, "!NPCArea", -10) # too private
+	table = AppendScoreTable(table, "[!InLight,!IsDayTime]", -10) # too dark
+	table = AppendScoreTable(table, "Bodypaint", -10) # Manaka not very exposed. There isnt a way to check the timer/opacity of the bodypaint
+	table = AppendScoreTable(table, "[Invisible,!Peeing]", -222) # Photo can't be rated if youre invisible,
+	table = AppendScoreTable(table, "[Invisible,Peeing]", -11) # but pee itself is visible in my headcanon and makes for a neat photo idea
+	table = AppendScoreTable(table, "[Invisible,Orgasm]", -11) # but pee itself is visible in my headcanon and makes for a neat photo idea
+
+	# Face Conditions
+	table = AppendScoreTable(table, "[Blindfolded,SubCondition_Vis_Face]", 20,"Blindfold")
+	table = AppendScoreTable(table, "[(HeartRate>120,Ecstasy>0.80),SubCondition_Vis_Face]", 20,"Lewd Expression") # lewd face A
+	table = AppendScoreTable(table, "[(HeartRate>120,Ecstasy>0.80),SubCondition_Face_Kink,SubCondition_Vis_Face]", 40,"Kinky Face") # lewd face high B : gagged etc
+	table = AppendScoreTable(table, "[(HeartRate>120,Ecstasy>0.80),SubCondition_Exposed_Face,SubCondition_Vis_Face]", 60,"Bare perverted expression") # lewd face high C : face reveal ... ?
+	table = AppendScoreTable(table, "[Orgasm, SubCondition_Vis_Face]", 33,"Ahegao") # Orgasm face pic A. Keep in mind these stack with the above.
+	table = AppendScoreTable(table, "[Orgasm, SubCondition_Face_Kink, SubCondition_Vis_Face]", 66,"Kinky Ahegao") # Orgasm face pic B : gagged etc
+	table = AppendScoreTable(table, "[Orgasm, SubCondition_Exposed_Face, SubCondition_Vis_Face]", 88,"Bare Ahegao") # Orgasm face pic C : Face Reveal...? 
+
+	# Action_ <Actionname>
+	table = AppendScoreTable(table, "[(Action_UseDildoWallPussy1,Action_UseDildoWallAnal1,Action_UseDildoWallFella1),(Exposed_Front,Exposed_HipCrouch),SubCondition_Vis_High]", 100,"Dildo") # using wall dildo
+	table = AppendScoreTable(table, "[(Action_UseDildoFloorPussy1,Action_UseDildoFloorAnal1),(Exposed_Front,Exposed_HipCrouch),SubCondition_Vis_High]", 100,"Dildo") # using floor dildo
+	table = AppendScoreTable(table, "[(Action_IntoWasher,Action_TakeFromWasher),SubCondition_Vis_High]", 50,"Laundry exposure") # while putting clothes in laundry
+	table = AppendScoreTable(table, "[Action_UseBuyMachine,(Exposed_Front,Exposed_HipCrouch,Exposed_Hip)]", 50,"Choice of beverage") # Vending machine
+	table = AppendScoreTable(table, "[Action_SwitchVibrator,(AdultToy_Vibrator,AdultToy_KuriRotor,AdultToy_TitRotor),(Exposed_Upper,Exposed_Front,Exposed_Hip)]", 100,"Vibrator self-pleasure")
+	table = AppendScoreTable(table, "[Action_SwitchPistonMachine,(AdultToy_PistonAnal,AdultToy_PistonPussy,AdultToy_PistonFuta),(Exposed_Upper,Exposed_Front,Exposed_Hip)]", 100,"Piston self-pleasure") # adjusting vibe or piston
+	table = AppendScoreTable(table, "(Action_PutDildoWall,Action_PutDildoFloor,Action_PickDildo,Action_PickDildoWall)", 25,"Dildo placement")
+	table = AppendScoreTable(table, "[Action_TakeOffPants,SubCondition_Vis_High]", 66,"Undressing") 
+	table = AppendScoreTable(table, "[Action_TakeOffBra,SubCondition_Vis_High]", 66,"Undressing")
+	table = AppendScoreTable(table, "[Action_DroppingClothes,(Exposed_Hip,Exposed_Upper,SubCondition_Vis_Groin),SubCondition_Vis_High]", 100,"Undressing")
+	table = AppendScoreTable(table, "[Action_PickingCoat,(Exposed_Hip,Exposed_Upper,SubCondition_Vis_Groin),SubCondition_Vis_High]", 50,"Dressing up")
+	table = AppendScoreTable(table, "[Action_ConbiniTakeGoods,(Exposed_Hip,Exposed_Upper)]", 50,"Choice of snacks")
+	table = AppendScoreTable(table, "[Action_DrinkWater,(Exposed_Front,Exposed_Upper)]", 25,"Dribble")
+	table = AppendScoreTable(table, "[Action_UnlockHandcuffsAtMap,(Exposed_Hip,Exposed_HipCrouch,Exposed_Front),SubCondition_Vis_High]", 100,"Escape attempt") # Stacks with HandcuffsObject
+	table = AppendScoreTable(table, "[Action_AttachHandcuffs,(Exposed_Upper,Exposed_HipCrouch),SubCondition_Vis_High]", 66,"Escape attempt") # While handcuffing hands behind back OR trying to remove. Stacks with HandcuffsBack
+	table = AppendScoreTable(table, "[Action_Pinpon,!Exposed_None]", 50,"Neighbourly attitude") # While pressing doorbell
+
+	# 'Pose' Actions
+	table = AppendScoreTable(table, "[Action_KaikyakuFella,(Exposed_HipCrouch,Exposed_Hip,Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Erotic pose")			#Spread-leg Blowjob
+	table = AppendScoreTable(table, "[Action_IBalance,SubCondition_Exposed_Any,SubCondition_Vis_Pose]", 33,"Erotic pose")	#I Balance
+	table = AppendScoreTable(table, "[Action_Dogeza,(Exposed_HipCrouch,Exposed_Hip,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 20,"Dogeza pose")			#Dogeza
+	table = AppendScoreTable(table, "[Action_DogezaUpHead,(Exposed_HipCrouch,Exposed_Hip,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Dogeza head-up pose")			#Dogeza
+	table = AppendScoreTable(table, "[Action_HipShake,SubCondition_Exposed_Any,SubCondition_Vis_Pose]", 33,"Erotic pose")		#Butt wiggle
+	table = AppendScoreTable(table, "[Action_Tebura,Exposed_Front,SubCondition_Vis_Pose]", 10,"Erotic pose")			#Hand bra
+	table = AppendScoreTable(table, "[Action_AhegaoDoublePiece,SubCondition_Exposed_Any,SubCondition_Vis_Pose]", 33,"Erotic pose")# Ahegao DoublePeace
+	table = AppendScoreTable(table, "[Action_GanimataHip,SubCondition_Exposed_Any,SubCondition_Vis_Pose]", 33,"Erotic pose")	#Bow-legged All Fours
+	table = AppendScoreTable(table, "[Action_DogTintin,(Exposed_Front,Exposed_Hip,Exposed_Upper,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Erotic pose")			#Penis
+	table = AppendScoreTable(table, "[Action_NeKataashiage,(Exposed_Hip,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Erotic pose")		#Supine one-leg raise
+	table = AppendScoreTable(table, "[Action_WakimiseCrouch,(Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Erotic pose")		#Armpit Squat
+	table = AppendScoreTable(table, "[Action_Haigure,(Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Erotic pose")			#High-leg Pose
+	table = AppendScoreTable(table, "[Action_GanimataKoshiHeko,(Exposed_HipCrouch,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Erotic pose")	#Hip-Thrust
+	table = AppendScoreTable(table, "[Action_ChikubiRotate,Exposed_Front,SubCondition_Vis_Pose]", 33,"Erotic pose") 							#Nipple Play
+	table = AppendScoreTable(table, "[Action_OnaniNormal,(Exposed_Front,Exposed_Hip,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 66,"Masturbating")	#Masturbate
+	table = AppendScoreTable(table, "[Action_MituasiOnani,(SubCondition_Exposed_Any,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 66,"Masturbation")#Three-leg masturbation
+	table = AppendScoreTable(table, "[Action_OnaniNeGanimata,SubCondition_Exposed_Any,SubCondition_Vis_Pose]", 66,"Masturbation")#Supine Masturbation
+	table = AppendScoreTable(table, "[Action_OnaniYotuashi,(Exposed_Hip,Exposed_HipCrouch,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 66,"Masturbation")	#Doggy masturbation
+	table = AppendScoreTable(table, "[Action_OnaniArmKuri,(Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 66,"Masturbation")	#Clit Play
+	table = AppendScoreTable(table, "[Action_OnaniSikoru,(Futanari,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 66,"Masturbation")			#Stroking
+
+	table = AppendScoreTable(table, "[Action_PeeKaikyaku,!Peeing,(Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Erotic pose")	#Spread-Leg Urination - dont forget these already stack with other Pee conditions
+	table = AppendScoreTable(table, "[Action_PeeStand,!Peeing,(Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Erotic pose")		#Standing Pee
+	table = AppendScoreTable(table, "[Action_PeeDog,!Peeing,SubCondition_Exposed_Any,SubCondition_Vis_Pose]", 33,"Erotic pose") 		#Dog Pee
+	table = AppendScoreTable(table, "[Action_PeeKaikyaku,Peeing,(Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Urinating pose")	#Spread-Leg Urination - dont forget these already stack with other Pee conditions
+	table = AppendScoreTable(table, "[Action_PeeStand,Peeing,(Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_Pose]", 33,"Urinating pose")		#Standing Pee
+	table = AppendScoreTable(table, "[Action_PeeDog,Peeing,SubCondition_Exposed_Any,SubCondition_Vis_Pose]", 33,"Urinating pose") 
+	# Cosplays and Toys
+	# - Toys
+	#table = AppendScoreTable(table, "[AdultToy_AnalPlug,(Exposed_HipCrouch,SubCondition_Vis_Groin)]", 50) # Doesnt exist in the game?
+	table = AppendScoreTable(table, "[AdultToy_Vibrator,([Exposed_HipCrouch,Exposed_Hip,SubCondition_Vis_Groin],Exposed_Front,[!Exposed_None,HandcuffsObject]),SubCondition_Vis_Med]", 44,"Vagina Vibrator")
+	table = AppendScoreTable(table, "[AdultToy_KuriRotor,(Exposed_Front,SubCondition_Vis_Groin)]", 33,"Clitoris Vibrator")
+	table = AppendScoreTable(table, "[AdultToy_TitRotor,Exposed_Front,SubCondition_Vis_Med]", 33,"Nipple Vibrators")
+	table = AppendScoreTable(table, "[(AdultToy_PistonAnal,AdultToy_PistonPussy),(Exposed_Hip,Exposed_Front,SubCondition_Vis_Groin,HandcuffsObject),SubCondition_Vis_Med]", 50,"Piston(s)") # a score for either piston, no benefit for both
+	#table = AppendScoreTable(table, "[AdultToy_PistonPussy,(Exposed_Hip,Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_Med]", 33)
+	table = AppendScoreTable(table, "[AdultToy_PistonFuta,(Exposed_Front,SubCondition_Vis_Groin,HandcuffsObject),SubCondition_Vis_High", 33,"Futa Piston") # Futa already gets a visibility bonus, so Vis_High not required
+	# - Groin
+	# General (Genitals):
+	#   m_cosplay_general_genital_maebari: True "Crotch Patch"
+	#   m_cosplay_general_genital_anal_plug: True "Anal Plug"
+	#   m_cosplay_general_genital_bansoukou: True "Bandage (Genitals)"
+	#   m_cosplay_general_genital_ofuda: True "Ofuda (Genitals)"
+	#   m_cosplay_general_genital_gentle_hand: True "GentlemanΓÇÖs Hand (Genitals)"
+	#   m_cosplay_general_genital_beads: True "Anal Beads"
+	#   m_cosplay_general_genital_rubbit_tail: True "Bunny Tail Plug"
+	#   m_cosplay_general_genital_ninjin: True "Carrot"
+	#   m_cosplay_general_genital_tail_plug: True "Tail Plug"
+	#   m_cosplay_general_genital_plug_light: True "Light-Up Anal Plug"
+	# - low vis
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_genital_anal_plug,([Exposed_HipCrouch,SubCondition_Vis_Groin],[Exposed_Front,SubCondition_Vis_Pose],SubCondition_Vis_Pose)]", 33,"Anal Plug") # The real anal plug 
+	
+	# - medium vis
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_genital_beads,([Exposed_HipCrouch,SubCondition_Vis_Groin],[Exposed_Front,SubCondition_Vis_Pose],SubCondition_Vis_Pose),SubCondition_Vis_Med]", 33,"Anal Beads") # True "Bunny Tail Plug"
+
+	# - high vis
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_genital_tail_plug,([Exposed_HipCrouch,SubCondition_Vis_Groin],[Exposed_Front,SubCondition_Vis_Pose],SubCondition_Vis_Pose),SubCondition_Vis_High]", 33,"Tail Plug") # True "Bunny Tail Plug"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_genital_plug_light,([Exposed_HipCrouch,SubCondition_Vis_Groin],[Exposed_Front,SubCondition_Vis_Pose],SubCondition_Vis_Pose),SubCondition_Vis_High]", 33,"Light-Up Anal Plug") # True "Bunny Tail Plug"
+
+	# - Upper Body
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_kubiwa_seisyori,(Exposed_Front,SubCondition_Vis_Face),SubCondition_Vis_Med]", 10,"Collar (Sex-use)") # : True "Collar (Sex-use)"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_gentle_hand,(Exposed_Front,SubCondition_Vis_Breast),SubCondition_Vis_High]", 10,"Gentlemans Hand (Chest)") # : True "GentlemanΓÇÖs Hand (Chest)"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_nippless,(Exposed_Front,SubCondition_Vis_Breast),SubCondition_Vis_Med]", 10,"Nipple Pasties") #: True "Nipple Pasties"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_cross_piasu,(Exposed_Front,SubCondition_Vis_Breast),SubCondition_Vis_Med]", 10,"Cross Nipple Piercings") # : True "Cross Nipple Piercings"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_nip_piasu,(Exposed_Front,SubCondition_Vis_Breast),SubCondition_Vis_Med]", 10,"Nipple Piercings") # : True "Nipple Piercings"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_chack_bikini_bra,(Exposed_Front,SubCondition_Vis_Breast)]", 10,"Open-Cup Bikini Bra") # : False "Open-Cup Bikini Bra"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_chack_bikini_pants,(Exposed_HipCrouch,Exposed_Front,SubCondition_Vis_Groin)]", 10,"Open-Crotch Bikini Bottoms") # : False "Open-Crotch Bikini Bottoms"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_micro_bikini_bra,(Exposed_Front,SubCondition_Vis_Breast)]", 10, "Micro Bikini Bra") # : True "Micro Bikini Bra"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_micro_bikini_pants,(Exposed_HipCrouch,Exposed_Front,SubCondition_Vis_Groin)]", 10,"Micro Bikini Bottoms") # : True "Micro Bikini Bottoms"
+
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_condom,(Exposed_Hip,Exposed_Front,SubCondition_Vis_Groin),SubCondition_Vis_High]", 20,"Condoms") # : True "Condom" # Vis High because it is visible from the side
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_kikkou,(Exposed_HipCrouch,Exposed_Upper,SubCondition_Vis_Groin,SubCondition_Vis_Breast)]", 20,"Shibari") # : True "Kikkou Shibari"
+	table = AppendScoreTable(table, "[Cosplay_m_cosplay_general_upper_sling_shot,(Exposed_HipCrouch,Exposed_Upper,SubCondition_Vis_Groin)]", 10,"Slingshot Bikini") # : True "Slingshot Bikini"
+
+
+	# Set Bonusses!
+	table = AppendScoreTable(table, "[SubCondition_Set_Succubus,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 60,"Succubus Cosplay")
+	table = AppendScoreTable(table, "[SubCondition_Set_TacticalMaid,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 100,"Maid Cosplay")
+	table = AppendScoreTable(table, "[SubCondition_Set_Ninja,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 50,"Ninja Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_Sister,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 110,"Sister Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_Furry,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 40,"Furry Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_Bunny ,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 80,"Bunny Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_Pony,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 50,"Latex Pony Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_Jumpsuit,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 20,"Jumpsuit Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_Guard,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 60,"Guard Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_Cowgirl ,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 70,"Cowgirl Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_WildBeast,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 70,"Wild Beast Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_SuitA,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 80,"Officewear Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_SuitB,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 50,"Officewear Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_AdultSweater,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 40,"Adult Sweater Cosplay") 
+	table = AppendScoreTable(table, "[SubCondition_Set_DownJacket,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 30,"Down Jacket Cosplay")  
+	table = AppendScoreTable(table, "[SubCondition_Set_SchoolUniformA,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 50,"School Cosplay A")  
+	table = AppendScoreTable(table, "[SubCondition_Set_SchoolUniformB,(Exposed_Front,Exposed_Upper,Exposed_Hip),(Orgasm,!Action_None,SubCondition_Vis_Pose,ShowingOff),SubCondition_Vis_High]", 50,"School Cosplay B")  
+
+	##DumpVariable(table,8)
+	_result = table
+
+# MakeScoreTable
+# includes an indexable array reference for iterating through.
+# examples: 
+#	if table["InOpenToilet"].co.Check() && table.array[0]
+#		score = table["InOpenToilet"].rp 
+
+MakeScoreTable:
+	#Log("FC.CR: > MakeScoreTable ")
+
+	table = CreateList()
+	table.array = CreateList()
+
+	# Default condition for testing etc: Nudity! The RP is low because it stacks with other exposure rewards
+	table[ "[CoatDropped,Exposed_All]"] = CreateList()
+	table[ "[CoatDropped,Exposed_All]"].name = "[CoatDropped,Exposed_All]" # copy of the string name useful for logging, UI, etc
+	table[ "[CoatDropped,Exposed_All]"].rp = 50 # rp score! Balance here!
+	table[ "[CoatDropped,Exposed_All]"].index =  table.array.Count() # if we already know the index, it avoids skimming the array later if RP value needs to be adjusted in runtime
+	table[ "[CoatDropped,Exposed_All]"].co = CreateCondition("[CoatDropped,Exposed_All]", table.array.Count() )  # condition ID = index. might be useful idk
+	table[ "[CoatDropped,Exposed_All]"].guiName = "Coat Dropped"
+	table.array.Insert( table["[CoatDropped,Exposed_All]"] ) # indexing this condition to the end of the array
+
+	#Log("FC.CR: > MakeScoreTable exit")
+	_result = table
+
+# AppendScoreTable(t=scoreTable, c="condition string", rp=rp_score, [,guiName="Nice string for menus."])
+AppendScoreTable:
+	if t == null
+		t = _args[0]
+	if c == null
+		c = _args[1]
+	if rp == null
+		rp = _args[2]
+	if guiName == null
+		guiName = _args[3]
+	#Log("FC.CR: > AppendScoreTable : " + c) 
+
+	if t[c] != null
+		#Log("FC.CR: !AppendScoreTable : Already exists : "+ t[c].name +" : "+ c)
+		t[c].rp = rp 
+	else
+		t[c] = CreateList()
+		t[c].name = c
+		if guiName != null
+			t[c].guiName = guiName
+			#Log("FC.CR: t[c].guiName : " + t[c].guiName)
+		t[c].rp = rp 
+		t[c].index = t.array.Count() 
+		t[c].co = CreateCondition(c, t.array.Count()) 
+		t.array.Insert( t[ c])
+	#Log("FC.CR:  < AppendScoreTable Count : " + t.array.Count() )
+	_result = t
+
+OutputScoreTableNames:
+	if t == null
+		t = _args[0]
+
+	out = CreateList()
+	i = scoreTable.array.Count()-1
+	while i>=0
+		out.Insert(scoreTable.array[i].name)
+		i-=1
+
+	_result = out
+
+# ScoreSnapshotData( cssd, sTable)
+# Add up the rp bonus/penalties from the photo (cssd) 
+ScoreSnapshotData:
+	thread = _this
+	if sTable == null
+		Log("FC.CR: ! Warning : ScoreSnapshotData : sTable null !")
+		sTable = _args[0]
+	if cssd == null
+		cssd = _args[1]
+
+	out = CreateList()
+	out["rp"] = 0
+	out["best"] = ""
+	rp = 0
+	highestScore = 0
+	highestName = "" 
+	_result = 0
+
+	# Log("FC.CR: > ScoreSnapshotData starting: ")
+	# Do score. But not if photo is at home!
+	if Find(cssd.Position.stage, "Apart") == -1 && cssd.Conditions.name.Count()>0
+		#Log("FC.CR: ScoreSnapshotData > Starting score tally... ")
+		i = cssd.Conditions.name.Count()-1
+
+		while i>=0
+			#Log(i)
+			# Log("FC.CR:  < Condition found: " + cssd.Conditions.name[i])
+			#if cssd.Conditions.state[i] #Manaka's complete _state from when photo was taken
+			vis = Max(0, cssd.Conditions.visibility[i]) 
+			# Log("FC.CR: vis " + vis)
+			if vis > 0
+				#Log("FC.CR: vis > 0  : "+ cssd.Conditions.name[i])
+				basis = sTable[ cssd.Conditions.name[i] ].rp # Lookup the condition reward
+				if basis > highestScore
+					#Log("FC.CR: basis > highestScore  : "+ cssd.Conditions.name[i])
+					highestScore = Max(highestScore,basis)
+					highestName = cssd.Conditions.name[i]
+					#Log("FC.CR: highestName : "+highestName)
+					if sTable[cssd.Conditions.name[i]].guiName!=null
+						highestName = sTable[cssd.Conditions.name[i]].guiName
+						Log("FC.CR: sTable highest name : "+highestName)
+					else
+						Log("FC.CR: sTable name not found : "+cssd.Conditions.name[i])
+						#Log ("sTable name not found : "+sTable[cssd.Conditions.name[i]].guiName)
+				rp +=  Round(basis * vis)
+				Log("FC.CR:  < Score added: "+ cssd.Conditions.name[i] +" : "+ Round( (sTable[ cssd.Conditions.name[i] ].rp * vis)) )
+			i-=1
+		#nothing, just early exit
+		exit:
+			#Log("FC.CR: ScoreSnapshotData > Finished scoring : " + rp)	
+			_result = rp
+		#Log("FC.CR: ScoreSnapshotData > Finished scoring : " + rp)
+
+	# NPC score
+	npcScore = 0 
+	npcInView = CreateList()
+	i = cssd.NPCs.Count()
+	while i > 0
+		i -= 1
+
+		npc = Copy(cssd.NPCs[i],deepCopy=true)
+		focus = InFocus_NPC(npc, cssd.Camera)
+		npc.InFocus=focus
+		if focus > 0
+			npcInView.Insert(npc)
+			Log("FC.CR: NPC is in photo : " )
+			#DumpVariable(npc.State,1)
+
+	i = npcInView.Count()
+	while i > 0
+		i -= 1
+		npc = npcInView[i]
+		npc_id = npc.ID
+
+		npcScore+=1 # for just being in photo
+		if npc.SeesPlayer
+			npcScore+=1
+		if npc.SeesFlashing
+			npcScore+=1
+
+	Log("FC.CR: npcScore : " + npcScore)
+	out.npcScore = npcScore
+	out.highestName = highestName
+	out.highestScore = highestScore
+	out.rp = rp	
+	_result = out
+
+NpcVis: # npcList, camera
+	if _args[0] == null
+		npcList = Copy(_state.NPCs,deepCopy=true)
+	if _args[1] == null
+		camera = _state.Camera
+
+	out = CreateList()
+	out.sumFocus = 0.0
+	out.highestFocus = -1.0
+	out.highestNpc = CreateList()
+
+	i = npcList.Count()
+	while i > 0
+		i -= 1
+		npc = Copy(npcList[i],deepCopy=true)
+		focus = InFocus_NPC(npc, camera)
+		out.sumFocus += focus
+		if focus > out.highestFocus
+			out.highestFocus = focus
+			out.highestNpc = npc
+	_result = out
+
+ConditionsToSnapshotData:
+	thread = _this
+	if ssd == null
+		ssd = _args[0]
+	if ssd == null
+		Log("FC.CR: Error : ConditionsToSnapshotData : ssd null")
+		thread.Goto("exit")
+	if sTable == null
+		sTable = _args[1]
+	if sTable == null
+		Log("FC.CR: Error : ConditionsToSnapshotData : sTable null")
+		thread.Goto("exit")	
+	if state == null
+		if _args[3]==null
+			state = _state
+		else
+			state = _args[3]
+	if requireExposure == null
+		requireExposure = False
+		exposed = False
+
+	elseif requireExposure
+		exposed = conExposedAny.Check()
+
+	#Log("FC.CR: > Starting ConditionsToSnapshotData") 
+	out = Copy(ssd, deepCopy = true)
+	out.Conditions = CreateList()
+	out.Conditions.name = CreateList()
+	out.Conditions.dict = CreateList()
+	out.Conditions.visibility = CreateList()
+	out.State = _state # Manaka's full state from when photo was taken, because gallery does not keep entire state, and gallery is harder to implement
+	if out.NPCs == null
+		out.NPCs = _state.NPCs
+	if out.Camera == null
+		out.Camera = _state.Camera
+	if out.CameraTarget == null
+		out.CameraTarget = _state.CameraTarget
+	if out.Position == null
+		out.Position = _state.Position
+
+	tVis=0 #total visibility of all conditions in the photo, only used for analytics/logging
+
+	if requireExposure && !exposed
+		Log("FC.CR: ConditionsToSnapshotData : exposure required, but not exposing!")
+		i=-1 # Early exit : requireExposure parameter used, but Manaka not 'Exposed'
+	elseif conFP.Check()
+		Log("FC.CR: ConditionsToSnapshotData : First person camera used, exiting!")
+		i=-1 # Early exit : FP Camera
+	else
+		i = sTable.array.Count()-1 # Proceed to Condition and Visibilty checks
+
+
+	chestMod = 1 # visibility adjustments for subsequent conditions
+	hipMod = 1
+	while i>=0
+		vis=0
+
+		if sTable.array[i].co.Check()
+			vis = ConditionVisibility(sTable.array[i].name)
+
+		if vis > 0
+			out.Conditions.name.Insert( sTable.array[i].name )
+			out.Conditions.visibility.Insert( vis ) 
+			out.Conditions.dict[sTable.array[i].name] = vis
+
+		tVis+=vis
+
+		i-=1
+	exit:
+		_result = null
+	Log("FC.CR: ConditionsToSnapshotData > Finished : Total visibility= " + tVis) 
+	##DumpVariable(out.Conditions, 8)
+	_result = out
+
+
+#ConditionVisibility( conString )
+ConditionVisibility: # conString [, modHip,modChest]
+	if conString == null
+		conString = _args[0]
+	if modHip == null
+		modHip = _args[1]
+	if modHip == null
+		modHip = 1
+	if modChest == null
+		modChest = _args[2]
+	if modChest == null
+		modChest = 1
+
+	# Check 1: Did this function call require preliminary exposure screening?
+	# Check 2: Is each condition true on its own?
+	# Check 3: If that condition requires specific exposure, check that it is visible in camera.
+	# Keep in mind that we do not check for ! in the strings, so complicated or oddly specific conditions may be omitted erroneously
+	cVis = 0 # Visibility Rating tally
+	cNotVis = 0 # the flat penalty for visibility failure is tallied here, then subtracted in final stage
+	cBonus = 1 # add stackable bonus/penalties to here - multiplier to visbility ratings
+	cAngleBonus = 0 # add stackable bonus/penalties to here - subtracts from Facing Threshold, and reduces minimum allowed focus rating below 0
+	if conCosplayNeg.Check() # the 'global' penalty from concealing cosplay items that will affect the entire photo
+		cNotVis+=visNegPenalty
+
+	# Log("FC.CR: ConditionVisibility >> " + conString )
+
+	npcVis = CreateList()
+	npcVis.focus = 1.0
+	if Find("Vis_NPC", conString) >= 0
+		npcVisCheck = NpcVis()
+		npcVis.focus = npcVisCheck.sumFocus
+		if npcVis.focus>0
+			Log("FC.CR: NPC in frame!" + npcVis.focus)
+		else
+		 	Log("FC.CR: Vis_NPC, but no NPC in frame")
+
+	if Find("Expos", conString) >= 0 || Find("Vis_", conString) >= 0 # If the condition includes Expose requirement, even if Exposed_None, process all visibility
+		# Visibility Angle bonus/penalties
+		if conNaked.Check()
+			cBonus+=visNudityBonus
+		if Find("Vis_Med", conString) >= 0
+			cBonus+=visMedBonus
+		if Find("Vis_High", conString) >= 0
+			cBonus+=visHighBonus
+
+
+		#Log("FC.CR:  < cBonus : " + cBonus)0
+		cAngleBonus=cBonus-1 # because cAngleBonus should default as 0, if cBonus is 1.2, the angle bonus should be 0.2
+		# Log("FC.CR:  < cAngleBonus : " + cAngleBonus)
+		# Log("FC.CR:  < viewThresholds.front : " + viewThresholds.front)
+		modifiedFacingThreshold = viewThresholds.front - cAngleBonus # The facing threshold gets easier to pass if visibility bonus is high. It is allowed to go negative, so some conditions that normally only visible in front can now be visible from side or even behind
+		# Log("FC.CR:  < modifiedFacingThreshold : " + modifiedFacingThreshold)
+		# Log("FC.CR:  < cAngleBonus : " + cAngleBonus)
+
+		taggedAny = Max(0,Find("Exposed_Any", conString), Find("!Exposed_None", conString))
+
+		taggedPoseNaked = Max(0,Find("_Vis_Naked", conString))
+		taggedPoseNaked += Max(0,Find("_Vis_Pose", conString))
+
+		taggedHipCrouch = Max(0,Find("_HipCrouch", conString))
+		taggedHipCrouch += Max(0,Find("_Vis_Groin", conString))
+		taggedHipCrouch += taggedPoseNaked + taggedAny
+
+		taggedHip = taggedHipCrouch
+		taggedHip += Max(0,Find("_Hip", conString))
+
+		taggedUpper = Max(0,Find("_Upper", conString))
+		taggedUpper += Max(0,Find("_Vis_Pose", conString))
+		taggedUpper +=  taggedAny
+
+		taggedFront = Max(0,Find("_Front", conString))
+		taggedFront += Max(0,Find("_Vis_Breast", conString))
+		taggedFront += taggedAny
+
+		taggedFuta = Max(0,Find("Futa", conString))
+		# Log("FC.CR: Tagged Futa")
+
+		# Visibility Front
+		front = viewCurrent.front*modChest
+		# Log("FC.CR: front:"+front)
+		if front > -modifiedFacingThreshold # negative facing = towards camera! Unlike other checks, cutoff is not pre-applied to viewCurrent.front during updates
+			# Log("FC.CR:  < Facing camera, checking : _Front")
+			if taggedFront > 0 # Checks if required anatomy is in view (Expose_Front)
+				vis =Max( viewCurrent.front, viewCurrent.body )*cBonus#Front Vis: determine entirely by how directly she is facing camera
+				cVis=Max(vis,cVis)
+				# Log("FC.CR:  << Visible : _Front : " + viewCurrent.front)
+
+				# Visibility Futa
+				if taggedFuta > 0
+					vis=Min(viewCurrent.crotch,viewCurrent.front)*2*cBonus
+					cVis=Max(vis,cVis)
+		else
+			if taggedFront > 0  # Checks if required anatomy is in view (Expose_Front)
+				cNotVis+=visFlatPenalty
+				# Log("FC.CR:  << Not Visible, facing wrong way : _Front : " + viewCurrent.front)
+			# Log("FC.CR:  < Facing away, skipped : _Front")
+
+
+		# Visibility Upper
+		upper = Max( viewCurrent.face, viewCurrent.body, viewCurrent.front) - ( Max(0,viewCurrent.crotch)/2)
+		# Log("FC.CR:  upper : " + upper)
+		if upper > (-cAngleBonus - visUpperBonus)
+			# Log("FC.CR:  < Upper Focus, checking : _Upper")
+			if taggedUpper > 0 # Checks if required anatomy is in view (Exposed_Upper)
+				vis=upper*cBonus # Upper Vis: Highest out of Head or Body focus.
+				cVis=Max(vis,cVis)
+				# Log("FC.CR:  << Visible : _Upper : " + viewCurrent.body)
+		else
+			if taggedUpper > 0 # Checks if required anatomy is in view (Exposed_Upper)
+				cNotVis+=visFlatPenalty
+				# Log("FC.CR:  << Not in focus : _Upper : " + viewCurrent.body)
+
+		# Visibility HipCrouch / Hip. Because "Hip" is included in "HipCrouch", rule-out hipcrouch first
+		crotch = viewCurrent.crotch
+		if taggedPoseNaked > 0
+			crotch+=visPoseBonus
+		crotch *= modHip
+		# Log("FC.CR: crotch:"+crotch)
+		if crotch > -cAngleBonus
+			# Log("FC.CR:  < Crotch Focus, checking facing : _HipCrouch and _Hip")
+			# HipCrouch
+			if ManakaDotCamera() < modifiedFacingThreshold # If camera is behind Manaka, check HipCrouch
+				# Log("FC.CR:  << Facing passed, checking condition : _HipCrouch " + viewCurrent.front)
+				if taggedHipCrouch > 0 
+					if _state.Crouching || _state.Coat.Dropped || conVisPose.Check() || conGroin.Check()  # There are a lot of edge cases where HipCrouch SHOULD be visible, that we can't accurately check for, so we account for extra opportunities
+						# Log("FC.CR:  <<< Visible : _HipCrouch : _state.Crouching || _state.Coat.Dropped || conVisPose.Check() || conGroin.Check(): " + viewCurrent.crotch)
+						vis=Max( (viewCurrent.crotch*cBonus), (Abs(viewCurrent.front*cBonus)-modifiedFacingThreshold) )#HipCrouch Vis: Highest of crotch focus or facing
+						cVis=Max(vis,cVis)
+					else
+						cNotVis+=visFlatPenalty
+						# Log("FC.CR:  <<< Not visible : _HipCrouch : _state.Crouching || _state.Coat.Dropped || _state.Coat.Back  : " + viewCurrent.crotch)
+			# Hip
+			if viewCurrent.front > -modifiedFacingThreshold && (conBreast.Check() || Find("Vis_Pose", conString) >= 0 ) # If camera is in front of manaka and front is also exposed
+				# Log("FC.CR:  < Facing towards/away from camera, checking for condition : _Hip : " + viewCurrent.front)
+				if taggedHip > 0 
+					# Log("FC.CR:  << Hip in focus, front is exposed, and facing towards : _Hip : " + viewCurrent.crotch)
+					vis=(viewCurrent.crotch + Abs(viewCurrent.front*cBonus)-modifiedFacingThreshold)/2 *cBonus #Hip Vis: average of facing camera focus	
+					cVis=Max(vis,cVis)
+								# Visibility Futa
+			elseif viewCurrent.front > modifiedFacingThreshold && (conGroin.Check() || Find("Vis_Pose", conString)  >= 0 ) # If camera is behind manaka and butt is exposed
+				if taggedHip > 0
+					# Log("FC.CR:  << Hip in focus, rear is exposed, and facing away : _Hip : " + viewCurrent.crotch)
+					vis=(viewCurrent.crotch + Abs(viewCurrent.front*cBonus)-modifiedFacingThreshold)/2 *cBonus #Hip Vis: average of facing and camera focus	
+					cVis=Max(vis,cVis)
+			elseif taggedHip > 0  # Camera must be side-view to get this far, then check for Hip conditions only to penalise visibility
+				cNotVis+=visFlatPenalty
+				# Log("FC.CR:  << Facing failed : _HipCrouch,_Hip : viewCurrent.front : " + viewCurrent.front)
+				# Log("FC.CR:  << Facing failed : _HipCrouch,_Hip : modifiedFacingThreshold : " + modifiedFacingThreshold)
+
+			# Visibility Futa
+			if taggedFuta>0 && viewCurrent.front>-0.33 && viewCurrent.side <0.66
+				vis=Min(viewCurrent.crotch,viewCurrent.front)*2*cBonus
+				cVis=Max(vis,cVis)
+
+		# Visibility Face
+		face = Max(viewCurrent.face, (viewCurrent.face + Min(0,viewCurrent.front))/2 )
+		if face > -cAngleBonus
+			if Find("Vis_Face",conString) >= 0
+				vis=face # Do not use the other bonusses or penalties for the head
+				cVis=Max(vis,cVis)
+
+		# Log("FC.CR:  Visibility for " +conString+ ", cNotvis: "+cNotVis+", cVis: "+cVis)
+		cVis-=cNotVis # Apply low visibility penalties
+	else # The condition does not include "Expose" or "Vis, then exposure is not a requirement, so visibility=1 for scoring purposes
+		cVis = 1
+
+	cVis=Max(0,cVis)
+	cVis *= npcVis.focus
+	Log("FC.CR:  Visibility for " +conString+ ", cVis:"+cVis+" cNotVis:"+cNotVis+" npcVis.focus:"+npcVis.focus)
+	_result = cVis
+
+
+
+## SPECIAL CONDITIONS
+#The following unique subconditions are meant to be used for logic filtering etc without triggering the default visibilty checks that occur for "Exposed_" keywords
+
+# Camera check
+conFP=CreateCondition("FPCamera")
+# SubCondition_None. An object useful for quick exposure check -  conNone.Check() 
+conNone=CreateCondition("Exposed_None", id="None")
+conVisible=CreateCondition("!Invisible", id="Visible")
+# SubCondition_Exposed_Any : ultimately this is inverse of conNone
+conExposedAny=CreateCondition("(!Exposed_None,[Crouching,Exposed_HipCrouch])", id="Exposed_Any")
+# SubCondition_NotAll : Omits Exposed keyword to avoid affecting visibility
+conNotAll=CreateCondition("(!Exposed_None,!Exposed_All)", id="NotAll")
+
+# SubCondition_Coat_Open : check for any difference from default coat state
+conCoatOpen=CreateCondition("(CoatDropped,CoatFrontOpen1,CoatFrontOpen2,CoatBackOpen)", id="Coat_Open")
+
+## VISIBILITY
+# SubCondition_Vis_Naked : only if VISIBLY naked 
+conNaked=CreateCondition("[CoatDropped,Exposed_All,!Bodypaint,!Invisible]", id="Vis_Naked")
+# SubCondition_Vis_Pose : a shortcut to help detect if Manaka is posing. No algorithm is suitable for all poses/actions, so a flat bonus is given - better than nothing?
+conVisPose=CreateCondition("[!Action_None,!HandcuffsBack,!Moving,!Crouching,!Sitting]", id="Vis_Pose")
+# SubCondition_Vis_Groin :
+conGroin=CreateCondition("(Exposed_HipCrouch,Exposed_Hip,!Action_None)", id="Vis_Groin")
+# SubCondition_Vis_Breast :
+conBreast=CreateCondition("[(CoatDropped,CoatFrontOpen1,CoatFrontOpen2),(Exposed_Front,Exposed_Upper,SubCondition_Vis_Pose)]", id="Vis_Breast")
+# SubCondition_Vis_NPC :
+conVisNPC=CreateCondition("(ShowingOff,[Watched,NearNPC])", id="Vis_NPC")
+
+# SubCondition_Vis_Med : cosplays that protrude from from Manaka's silhouette, making them easier to see
+conTagVisMed=CreateCondition("!Exposed_None", id="Vis_Med") # Apply this subcondition to any conditions that should recieve visMedBonus
+conCosplayVisMed=CreateCondition("(Cosplay_m_cosplay_general_upper_nip_piasu,Cosplay_m_cosplay_general_upper_nippless,Cosplay_m_cosplay_general_upper_cross_piasu,Cosplay_m_cosplay_general_genital_gentle_hand,Cosplay_m_cosplay_general_genital_rubbit_tail,Cosplay_m_cosplay_general_genital_ninjin,Cosplay_m_cosplay_general_genital_beads,Cosplay_m_cosplay_general_upper_condom,Cosplay_m_cosplay_general_upper_gentle_hand)", id="Cos_Med") #provides a check for specific cosplays that are medium visbility
+# SubCondition_Vis_High : cosplays that are visible from almost any camera angle / exposure
+conTagVisHigh=CreateCondition("!Exposed_None", id="Vis_High") # Apply this subcondition to any conditions that should recieve visHighBonus
+conCosplayVisHigh=CreateCondition("(Cosplay_m_cosplay_general_genital_tail_plug,Cosplay_m_cosplay_general_genital_plug_light,Cosplay_m_cosplay_general_upper_kanban)", id="Cos_High") # SubCondition_Cos_High  Provides a check for specific cosplays that are high visibility
+# SubCondition_Vis_Neg : cosplays that actually reduce the visibility of conditions
+conTagVisNeg=CreateCondition("!Exposed_None", id="Vis_Neg")
+# SubCondition_Cos_Neg : cosplays that actually reduce the visibility of conditions
+conCosplayNeg=CreateCondition("(Cosplay_m_cosplay_general_upper_rain_coat,Cosplay_m_cosplay_general_upper_rubber_suit)", id="Cos_Neg")
+
+# SubCondition_Hides_Breast : tag for cosplay that actually reduce the visibility of other breast conditions
+conTagHidesBreast=CreateCondition("Exposed_Front", id="Hides_Breast")
+# SubCondition_Hides_BreastCheck : this is used to Check() against list of items that hide breast
+conCheckHidesBreast=CreateCondition("Cosplay_m_cosplay_general_upper_kanban")
+# SubCondition_Hides_Groin : tag for cosplay that actually reduce the visibility of other hip/groin conditions
+conTagHidesGroin=CreateCondition("Exposed_Hip", id="Hides_Groin")
+
+## FACE
+# SubCondition_Vis_Face : add to conditions that require the head to be in focus. Does not check items
+conTagVisFace=CreateCondition("!Exposed_None", id="Vis_Face") # If you need to check Manaka's face for some reason. eg, anonymity / Orgasm face photo ;)
+
+# SubCondition_Exposed_Face : True if no basic items cover Manaka's face
+conCosplayExposedFace=CreateCondition("!(Blindfolded,Cosplay_m_cosplay_general_head_mask,Cosplay_m_cosplay_general_head_glasses,Cosplay_m_cosplay_general_head_sun_glasses,Cosplay_m_cosplay_general_head_eye_censor,Cosplay_m_cosplay_general_head_mekakushi,Cosplay_m_cosplay_general_head_houtai,Cosplay_m_cosplay_ninja_mask,Cosplay_m_cosplay_sister_face,Cosplay_m_cosplay_latex_pony_full_face)", id="Exposed_Face")
+# SubCondition_Face_Kink : True if Manaka has any gags or latex face cosplay / toys
+conCosplayFaceKink=CreateCondition("(Cosplay_m_cosplay_general_head_osyaburi,Cosplay_m_cosplay_general_head_kuchikase,Cosplay_m_cosplay_latex_pony_head)", id="Face_Kink")
+# SubCondition_Face_Lewd : Manaka's face while excited or near orgasm
+conFaceLewd = CreateCondition("[(HeartRate>120,Ecstasy>0.80,Orgasm),SubCondition_Vis_Face]", id="Face_Lewd")
+# SubCondition_Face_Orgasm : Manaka's face during orgasm
+conFaceOrgasm = CreateCondition("[Orgasm,SubCondition_Vis_Face]", id="Face_Orgasm")
+
+## COSPLAY SET BONUSSES
+#SubCondition_Set_Jumpsuit
+conCosplaySet_Jumpsuit=CreateCondition("[Cosplay_m_cosplay_jump_suit_suit,Cosplay_m_cosplay_jump_suit_boots]", id="Set_Jumpsuit")
+#SubCondition_Set_Guard
+conCosplaySet_Guard=CreateCondition("[Cosplay_m_cosplay_jailer_cap,Cosplay_m_cosplay_jailer_jacket,Cosplay_m_cosplay_jailer_reotard,Cosplay_m_cosplay_jailer_pants,Cosplay_m_cosplay_jailer_bag,Cosplay_m_cosplay_jailer_boots]", id="Set_Guard")
+#SubCondition_Set_Cowgirl
+conCosplaySet_Cowgirl=CreateCondition("[Cosplay_m_cosplay_cow_hair_band,Cosplay_m_cosplay_cow_choker,Cosplay_m_cosplay_cow_glove,Cosplay_m_cosplay_cow_bra,Cosplay_m_cosplay_cow_pants,Cosplay_m_cosplay_cow_tail,Cosplay_m_cosplay_cow_boots]", id="Set_Cowgirl")
+#SubCondition_Set_WildBeast
+conCosplaySet_WildBeast=CreateCondition("[Cosplay_m_cosplay_wild_neck_mohu,Cosplay_m_cosplay_wild_belt,Cosplay_m_cosplay_wild_nippless_mohu,Cosplay_m_cosplay_wild_hand_mohu,Cosplay_m_cosplay_wild_pants,Cosplay_m_cosplay_wild_upper_leg_mohu,Cosplay_m_cosplay_wild_foot_mohu]", id="Set_WildBeast")
+#SubCondition_Set_SuitA
+conCosplaySet_SuitA=CreateCondition("[(Cosplay_m_cosplay_suit_chic_shirt,Cosplay_m_cosplay_suit_chic_jacket,Cosplay_m_cosplay_suit_chic_skirt,Cosplay_m_cosplay_suit_chic_pants),Cosplay_m_cosplay_suit_chic_card,Cosplay_m_cosplay_suit_chic_panty,Cosplay_m_cosplay_suit_chic_shoes]", id="Set_SuitA")
+#SubCondition_Set_SuitB
+conCosplaySet_SuitB=CreateCondition("[(Cosplay_m_cosplay_suit_luxe_jacket,Cosplay_m_cosplay_suit_luxe_tops,Cosplay_m_cosplay_suit_luxe_pants),Cosplay_m_cosplay_suit_luxe_chorker,Cosplay_m_cosplay_suit_luxe_shoes]", id="Set_SuitB")
+#SubCondition_Set_AdultSweater
+conCosplaySet_AdultSweater=CreateCondition("(Cosplay_m_cosplay_sweater_tops,[Cosplay_m_cosplay_sweater_pants,Cosplay_m_cosplay_sweater_arm,Cosplay_m_cosplay_sweater_leg])", id="Set_AdultSweater")
+#SubCondition_Set_DownJacket
+conCosplaySet_DownJacket=CreateCondition("[(Cosplay_m_cosplay_glossy_jacket,Cosplay_m_cosplay_glossy_knit),Cosplay_m_cosplay_glossy_boots]", id="Set_DownJacket")
+#SubCondition_Set_SchoolUniformA:
+conCosplaySet_SchoolUniformA=CreateCondition("[(Cosplay_m_cosplay_school_hoodie_hoodie,Cosplay_m_cosplay_school_hoodie_shirt,Cosplay_m_cosplay_school_hoodie_skirt),(Cosplay_m_cosplay_school_hoodie_ribbon,Cosplay_m_cosplay_school_hoodie_necktie),Cosplay_m_cosplay_school_hoodie_bag,Cosplay_m_cosplay_school_hoodie_socks,Cosplay_m_cosplay_school_hoodie_shoes]", id="Set_SchoolUniformA")
+#SubCondition_Set_SchoolUniformB:
+conCosplaySet_SchoolUniformB=CreateCondition("[(Cosplay_m_cosplay_school_gal_blazer,Cosplay_m_cosplay_school_gal_shirt_winter,Cosplay_m_cosplay_school_gal_skirt,Cosplay_m_cosplay_school_gal_shirt_summer),(Cosplay_m_cosplay_school_gal_cardigan_winter,Cosplay_m_cosplay_school_gal_cardigan_summer),(Cosplay_m_cosplay_school_gal_necktie,Cosplay_m_cosplay_school_gal_ribbon),Cosplay_m_cosplay_school_gal_bag,Cosplay_m_cosplay_school_gal_sockes,Cosplay_m_cosplay_school_gal_shoes,Cosplay_m_cosplay_school_gal_earing,Cosplay_m_cosplay_school_gal_necklace,Cosplay_m_cosplay_school_gal_bracelet]", id="Set_SchoolUniformB")
+#SubCondition_Set_Succubus:
+conCosplaySet_Succubus=CreateCondition("[Cosplay_m_cosplay_succubus_cosplay_horn,Cosplay_m_cosplay_succubus_cosplay_tops,Cosplay_m_cosplay_succubus_cosplay_wing,Cosplay_m_cosplay_succubus_cosplay_skirt,Cosplay_m_cosplay_succubus_cosplay_pants,Cosplay_m_cosplay_succubus_cosplay_tail]", id="Set_Succubus" )
+#SubCondition_Set_TacticalMaid:
+conCosplaySet_TacticalMaid=CreateCondition("[(Cosplay_m_cosplay_maid_apron,Cosplay_m_cosplay_maid_onepiece),Cosplay_m_cosplay_maid_choker,Cosplay_m_cosplay_maid_sleeve,Cosplay_m_cosplay_maid_harness_belt,Cosplay_m_cosplay_maid_ribbon,Cosplay_m_cosplay_maid_bag,Cosplay_m_cosplay_maid_stocking,Cosplay_m_cosplay_maid_ankle_belt,Cosplay_m_cosplay_maid_shoes]", id="Set_TacticalMaid")
+# SubCondition_Set_Ninja:
+conCosplaySet_Ninja=CreateCondition("[Cosplay_m_cosplay_ninja_omen,Cosplay_m_cosplay_ninja_mask,Cosplay_m_cosplay_ninja_sleeve,Cosplay_m_cosplay_ninja_tops,Cosplay_m_cosplay_ninja_boots]", id="Set_Ninja")
+# SubCondition_Set_Sister: Secretly allow you to wear Cross Piercing instead of Leotard for Sister Set purposes
+conCosplaySet_Sister=CreateCondition("(Cosplay_m_cosplay_sister_leotard,Cosplay_m_cosplay_general_upper_cross_piasu),Cosplay_m_cosplay_sister_head,Cosplay_m_cosplay_sister_face,Cosplay_m_cosplay_sister_cloth,Cosplay_m_cosplay_sister_curtain,Cosplay_m_cosplay_sister_collar,Cosplay_m_cosplay_sister_shoulder,Cosplay_m_cosplay_sister_arm,Cosplay_m_cosplay_sister_socks,Cosplay_m_cosplay_sister_shoes,Cosplay_m_cosplay_sister_pants]", id="Set_Sister")
+# SubCondition_Set_Furry
+conCosplaySet_Furry=CreateCondition("[(Cosplay_m_cosplay_kemono_ear_cat,Cosplay_m_cosplay_kemono_ear_fox),Cosplay_m_cosplay_kemono_hand,Cosplay_m_cosplay_kemono_tail,Cosplay_m_cosplay_kemono_foot]", id="Set_Furry")
+# SubCondition_Set_Bunny
+conCosplaySet_Bunny=CreateCondition("[Cosplay_m_cosplay_bunny_ear,Cosplay_m_cosplay_bunny_tops,Cosplay_m_cosplay_bunny_harness_top,Cosplay_m_cosplay_bunny_harness_under,Cosplay_m_cosplay_bunny_jacket,Cosplay_m_cosplay_bunny_nippless,Cosplay_m_cosplay_bunny_sockes,Cosplay_m_cosplay_bunny_shoes]", id="Set_Bunny")
+# SubCondition_Set_Pony
+conCosplaySet_Pony=CreateCondition("[Cosplay_m_cosplay_latex_pony_ear,Cosplay_m_cosplay_latex_pony_full_face,Cosplay_m_cosplay_latex_pony_head,Cosplay_m_cosplay_latex_pony_colllar,Cosplay_m_cosplay_latex_pony_tops,Cosplay_m_cosplay_latex_pony_nippless,Cosplay_m_cosplay_latex_pony_glove,Cosplay_m_cosplay_latex_pony_hip_belt,Cosplay_m_cosplay_latex_pony_tail,Cosplay_m_cosplay_latex_pony_boots]", id="Set_Pony")
+
+## VIP requests
+conCosplay_Shibari=CreateCondition("Cosplay_m_cosplay_general_upper_kikkou", id="Shibari") # : True "Kikkou Shibari"
+conCosplay_Kanban=CreateCondition("Cosplay_m_cosplay_general_upper_kanban", id="Kanban") # : True "Pervert Sign" - gives RP but reduces visibility of breast conditions
+conSwitch_Vibrator=CreateCondition("[Action_SwitchVibrator,(AdultToy_Vibrator,AdultToy_KuriRotor,AdultToy_TitRotor)]", id="Action_SwitchV") #SubCondition_Action_SwitchV
+conSwitch_Piston=CreateCondition("[Action_SwitchPistonMachine,(AdultToy_PistonAnal,AdultToy_PistonPussy,AdultToy_PistonFuta)]", id="Action_SwitchP")#SubCondition_Action_SwitchP
+conRisk_Busting=CreateCondition("Moisture>0.90,Ecstasy>0.90", id="Risk_Busting")
+conRisk_Blushing=CreateCondition("Ecstasy>0.5,Stamina<0.10", id="Risk_Blushing")
+conRisk_Panting=CreateCondition("Ecstasy>0.90,Stamina<0.10", id="Risk_Panting")
+conRisk_Overt=CreateCondition("[!Invisible,(InLight,IsDayTime),Detection>=100,(Watched,ShowingOff,NearNPC),(Orgasm,Peeing,!Action_None,Sitting),SubCondition_Exposed_Any]", id="Risk_Overt")
+conWalkingPose=CreateCondition("[Moving,!Action_None]", id="Walking_Pose")
+
+conDetection_Ninja=CreateCondition("Detection<=0.15", id="Detection_Ninja") #SubCondition_Detection_Ninja
+conDetection_VeryLow=CreateCondition("Detection<0.33,Detection>0.15", id="Detection_VeryLow") #SubCondition_Detection_VeryLow
+conDetection_Low=CreateCondition("Detection<0.75,Detection>0.33", id="Detection_Low")	#SubCondition_Detection_Low
+conDetection_Normal=CreateCondition("Detection>=0.75,Detection<1.33", id="Detection_Normal")	#SubCondition_Detection_Normal
+conDetection_Medium=CreateCondition("Detection>=1.33,Detection<1.66", id="Detection_Medium")	#SubCondition_Detection_Medium
+conDetection_High=CreateCondition("Detection>=1.66,Detection<2", id="Detection_High")	#SubCondition_Detection_High
+conDetection_VeryHigh=CreateCondition("Detection>=2.00,Detection<2.33", id="Detection_VeryHigh")	#SubCondition_Detection_VeryHigh
+conDetection_Extreme=CreateCondition("Detection>=2.33", id="Detection_Extreme")	#SubCondition_Detection_Extreme
+
+## REFERENCE
+	# I made my own reference here because the one in documentation is frequently wrong :(
+
+	# Poses
+	#Action_KaikyakuFella #Spread-leg Blowjob
+	#Action_IBalance
+	#Action_Dogeza
+	#Action_HipShake #Butt wiggle
+	#Action_Tebura  #Hand bra
+	#Action_AhegaoDoublePiece
+	#Action_GanimataHip #Bow-legged All Fours
+	#Action_DogTintin #Penis
+	#Action_NeKataashiage #Supine one-leg raise
+	#Action_WakimiseCrouch #Armpit Squat
+	#Action_Haigure #High-leg Pose
+	#Action_GanimataKoshiHeko #Hip-Thrust
+	#Action_OnaniNormal #Masturbate
+	#Action_MituasiOnani #Three-leg masturbation
+	#Action_OnaniNeGanimata #Supine Masturbation
+	#Action_OnaniYotuashi #Doggy masturbation
+	#Action_ChikubiRotate #Nipple Play
+	#Action_OnaniArmKuri #Clit Play
+	#Action_OnaniSikoru #Stroking
+	#Action_PeeKaikyaku #Spread-Leg Urination
+	#Action_PeeStand #Standing Pee
+	#Action_PeeDog #Dog Pee
+	#Action_
+	#Action_
+
+	# Other neat actions:
+	#Action_EatMedicine
+	#Action_UseBuyMachine
+	#Action_PutHandcuffsOnMap #cuffing to object
+	#Action_HandcuffsAtMap #idle while handcuffed to object
+	#Action_UnlockHandcuffsAtMap #while unlocking handcuffs attached to object
+	#Action_PutDildoWall
+	#Action_PickDildoWall
+	#Action_ConbiniTakeGoods # Taking food in convenience store
+	#Action_HandOver # Placing food on checkout at convenience store
+	#Action_Pinpon # while pressing doorbell
+	#Action_SitDown # idle while on a chair
+	#Action_StandUp # while getting up from the chair
+	#Action_DroppingClothes # dropping coat
+	#Action_PickingCoat # picking up coat
+	#Action_IntoWasher # Putting clothes in the wash
+	#Action_TakeFromWasher # Taking clothes out of the wash
+	#Action_AttachHandcuffs # This is both the unlocking of handcuffs behind back, and putting them on!
+	#Action_SwitchVibrator
+	#Action_SwitchPistonMachine
+
+
+	# 	 Skill_ <Skillname>
+	#table = AppendScoreTable(table, "(Skill_Slow)", -50) # penalty for slowing the game to take photo ;)
+
+	#	Item_ <Itemname>  
+
+	# Cosplay_
+	# General (Head):
+	#   m_cosplay_general_head_mask: True "Mask"
+	#   m_cosplay_general_head_glasses: True "Glasses"
+	#   m_cosplay_general_head_sun_glasses: True "Sunglasses"
+	#   m_cosplay_general_head_kuchikase: True "Gag"
+	#   m_cosplay_general_head_eye_censor: True "Black Censor Bar"
+	#   m_cosplay_general_head_mekakushi: True "Blindfold"
+	#   m_cosplay_general_head_houtai: True "Bandage Blindfold"
+	# General (Upper Body):
+	#   m_cosplay_general_upper_kubiwa: True "Collar"
+	#   m_cosplay_general_upper_mufflar: True "Scarf"
+	#   m_cosplay_general_upper_kubiwa_seisyori: True "Collar (Sex-use)"
+	#   m_cosplay_general_upper_bra: True "Bra"
+	#   m_cosplay_general_upper_race_pants: True "Lace Panties"
+	#   m_cosplay_general_upper_condom: True "Condom"
+	#   m_cosplay_general_upper_rain_coat: True "Raincoat"
+	#   m_cosplay_general_upper_far: True "Fur"
+	#   m_cosplay_general_upper_necktie: True "Necktie"
+	#   m_cosplay_general_upper_kanban: True "Pervert Sign"
+	#   m_cosplay_general_upper_body_net: True "Fishnet Shirt"
+	#   m_cosplay_general_upper_randoseru: True "Randoseru"
+	#   m_cosplay_general_upper_nippless: True "Nipple Pasties"
+	#   m_cosplay_general_upper_glove: True "Gloves"
+	#   m_cosplay_general_upper_ultimate_pants: True "Panties"
+	#   m_cosplay_general_upper_bansoukou: True "Bandage (Nipples)"
+	#   m_cosplay_general_upper_ofuda: True "Ofuda (Nipples)"
+	#   m_cosplay_general_upper_gentle_hand: True "GentlemanΓÇÖs Hand (Chest)"
+	#   m_cosplay_general_upper_cross_piasu: True "Cross Nipple Piercings"
+	#   m_cosplay_general_upper_nip_piasu: True "Nipple Piercings"
+	#   m_cosplay_general_upper_glove_net: True "Fishnet Gloves"
+	#   m_cosplay_general_upper_long_leather_glove: True "Long Leather Gloves"
+	#   m_cosplay_general_upper_full_glove: True "Full Gloves"
+	#   m_cosplay_general_upper_sling_shot: True "Slingshot Bikini"
+	#   m_cosplay_general_upper_harness: True "Harness"
+	#   m_cosplay_general_upper_swimsuit: True "Competitive Swimsuit"
+	#   m_cosplay_general_upper_sukumizu: True "School Swimsuit"
+	#   m_cosplay_general_upper_rubber_suit: True "Rubber Suit"
+	#   m_cosplay_general_upper_chack_bikini_bra: False "Open-Cup Bikini Bra"
+	#   m_cosplay_general_upper_chack_bikini_pants: False "Open-Crotch Bikini Bottoms"
+	#   m_cosplay_general_upper_micro_bikini_bra: True "Micro Bikini Bra"
+	#   m_cosplay_general_upper_micro_bikini_pants: True "Micro Bikini Bottoms"
+	#   m_cosplay_general_upper_kikkou: True "Kikkou Shibari"
+	# General (Genitals):
+	#   m_cosplay_general_genital_maebari: True "Crotch Patch"
+	#   m_cosplay_general_genital_anal_plug: True "Anal Plug"
+	#   m_cosplay_general_genital_bansoukou: True "Bandage (Genitals)"
+	#   m_cosplay_general_genital_ofuda: True "Ofuda (Genitals)"
+	#   m_cosplay_general_genital_gentle_hand: True "GentlemanΓÇÖs Hand (Genitals)"
+	#   m_cosplay_general_genital_beads: True "Anal Beads"
+	#   m_cosplay_general_genital_rubbit_tail: True "Bunny Tail Plug"
+	#   m_cosplay_general_genital_ninjin: True "Carrot"
+	#   m_cosplay_general_genital_tail_plug: True "Tail Plug"
+	#   m_cosplay_general_genital_plug_light: True "Light-Up Anal Plug"
+
+
+    # Cosplay_m_cosplay_succubus_cosplay_horn: True "Horns"
+    # Cosplay_m_cosplay_succubus_cosplay_tops: True "Top"
+    # Cosplay_m_cosplay_succubus_cosplay_wing: True "Wings"
+    # Cosplay_m_cosplay_succubus_cosplay_skirt: True "Skirt"
+    # Cosplay_m_cosplay_succubus_cosplay_pants: True "Panties"
+    # Cosplay_m_cosplay_succubus_cosplay_tail: True "Tail"
+  #   Cosplay_m_cosplay_maid_choker: True "Choker"
+  #   Cosplay_m_cosplay_maid_onepiece: True "One-piece Dress"
+  #   Cosplay_m_cosplay_maid_sleeve: True "Sleeves"
+  #   Cosplay_m_cosplay_maid_harness_belt: True "Harness Belt"
+  #   Cosplay_m_cosplay_maid_apron: True "Apron"
+  #   Cosplay_m_cosplay_maid_ribbon: True "Ribbon"
+  #   Cosplay_m_cosplay_maid_bag: True "Leg Bag"
+  #   Cosplay_m_cosplay_maid_stocking: True "Stockings"
+  #   Cosplay_m_cosplay_maid_ankle_belt: True "Ankle Belt"
+  #   Cosplay_m_cosplay_maid_shoes: True "Loafers"
+    # Cosplay_m_cosplay_ninja_omen: True "Face Mask"
+    # Cosplay_m_cosplay_ninja_mask: True "Mask"
+    # Cosplay_m_cosplay_ninja_sleeve: True "Sleeves"
+    # Cosplay_m_cosplay_ninja_tops: True "Top"
+    # Cosplay_m_cosplay_ninja_boots: True "Boots"
+    # Cosplay_m_cosplay_sister_head: True "Veil"
+    # Cosplay_m_cosplay_sister_face: True "Face Veil"
+    # Cosplay_m_cosplay_sister_cloth: True "Top"
+    # Cosplay_m_cosplay_sister_leotard: True "Leotard"
+    # Cosplay_m_cosplay_sister_curtain: True "Chest Curtain"
+    # Cosplay_m_cosplay_sister_collar: True "Neck Scarf"
+    # Cosplay_m_cosplay_sister_shoulder: True "Shoulder Frills"
+    # Cosplay_m_cosplay_sister_arm: True "Arm Frills"
+    # Cosplay_m_cosplay_sister_socks: True "Socks"
+    # Cosplay_m_cosplay_sister_shoes: True "Shoes"
+    # Cosplay_m_cosplay_sister_pants: True "Panties"
+    # Cosplay_m_cosplay_kemono_ear_cat: True "Cat Ears"
+    # Cosplay_m_cosplay_kemono_ear_fox: True "Fox Ears"
+    # Cosplay_m_cosplay_kemono_hand: True "Gloves"
+    # Cosplay_m_cosplay_kemono_tail: True "Tail"
+    # Cosplay_m_cosplay_kemono_foot: True "Shoes"
+    # Cosplay_m_cosplay_bunny_ear: True "Bunny Head"
+    # Cosplay_m_cosplay_bunny_tops: True "Top"
+    # Cosplay_m_cosplay_bunny_harness_top: True "Top Harness"
+    # Cosplay_m_cosplay_bunny_harness_under: True "Under Harness"
+    # Cosplay_m_cosplay_bunny_jacket: True "Jacket"
+    # Cosplay_m_cosplay_bunny_nippless: True "Nipple Pasties"
+    # Cosplay_m_cosplay_bunny_sockes: True "Socks"
+    # Cosplay_m_cosplay_bunny_shoes: True "Shoes"
+    # Cosplay_m_cosplay_latex_pony_ear: True "Ears"
+    # Cosplay_m_cosplay_latex_pony_full_face: True "Full-Face Mask"
+    # Cosplay_m_cosplay_latex_pony_head: True "Headgear"
+    # Cosplay_m_cosplay_latex_pony_colllar: True "Collar"
+    # Cosplay_m_cosplay_latex_pony_tops: True "Top"
+    # Cosplay_m_cosplay_latex_pony_nippless: True "Nipple Pasties"
+    # Cosplay_m_cosplay_latex_pony_glove: True "Gloves"
+    # Cosplay_m_cosplay_latex_pony_hip_belt: True "Hip Belt"
+    # Cosplay_m_cosplay_latex_pony_tail: True "Tail"
+    # Cosplay_m_cosplay_latex_pony_boots: True "Boots"
+    # Latex Harness: False "Latex Harness"
+    # Cosplay_m_cosplay_jump_suit_suit: True "Suit"
+    # Cosplay_m_cosplay_jump_suit_boots: True "Boots"
+    # Cosplay_m_cosplay_jailer_cap: True "Cap"
+    # Cosplay_m_cosplay_jailer_jacket: True "Jacket"
+    # Cosplay_m_cosplay_jailer_reotard: True "Leotard"
+    # Cosplay_m_cosplay_jailer_pants: True "Shorts"
+    # Cosplay_m_cosplay_jailer_bag: True "Leg Bag"
+    # Cosplay_m_cosplay_jailer_boots: True "Boots"
+    # Cosplay_m_cosplay_cow_hair_band: True "Cow Hairband"
+    # Cosplay_m_cosplay_cow_choker: True "Bell Collar"
+    # Cosplay_m_cosplay_cow_glove: True "Cow Gloves"
+    # Cosplay_m_cosplay_cow_bra: True "Cow Bra"
+    # Cosplay_m_cosplay_cow_pants: True "Cow Panties"
+    # Cosplay_m_cosplay_cow_tail: True "Cow Tail Plug"
+    # Cosplay_m_cosplay_cow_boots: True "Cow Boots"
+    # Cosplay_m_cosplay_wild_neck_mohu: True "Neck Fluff"
+    # Cosplay_m_cosplay_wild_belt: True "Belt"
+    # Cosplay_m_cosplay_wild_nippless_mohu: True "Nipple Fluff Pasties"
+    # Cosplay_m_cosplay_wild_hand_mohu: True "Wrist Fluff"
+    # Cosplay_m_cosplay_wild_pants: True "Hot Pants"
+    # Cosplay_m_cosplay_wild_upper_leg_mohu: True "Thigh Fluff"
+    # Cosplay_m_cosplay_wild_foot_mohu: True "Ankle Fluff"
+    # Cosplay_m_cosplay_suit_chic_shirt: True "Shirt"
+    # Cosplay_m_cosplay_suit_chic_jacket: True "Jacket"
+    # Cosplay_m_cosplay_suit_chic_card: True "Card"
+    # Cosplay_m_cosplay_suit_chic_skirt: True "Skirt"
+    # Cosplay_m_cosplay_suit_chic_pants: True "Suit Pants"
+    # Cosplay_m_cosplay_suit_chic_panty: False "Panties"
+    # Cosplay_m_cosplay_suit_chic_stocking: True "Stockings"
+    # Cosplay_m_cosplay_suit_chic_shoes: True "Shoes"
+    # Cosplay_m_cosplay_suit_luxe_chorker: True "Choker"
+    # Cosplay_m_cosplay_suit_luxe_jacket: True "Jacket"
+    # Cosplay_m_cosplay_suit_luxe_tops: True "Top"
+    # Cosplay_m_cosplay_suit_luxe_pants: True "Suit Pants"
+    # Cosplay_m_cosplay_suit_luxe_shoes: True "Shoes"
+    # Cosplay_m_cosplay_sweater_tops: True "Top"
+    # Cosplay_m_cosplay_sweater_pants: True "Panties"
+    # Cosplay_m_cosplay_sweater_arm: True "Arm Warmers"
+    # Cosplay_m_cosplay_sweater_leg: True "Leg Warmers"
+    # Cosplay_m_cosplay_glossy_jacket: True "Down Jacket"
+    # Cosplay_m_cosplay_glossy_knit: True "Knit Sweater"
+    # Cosplay_m_cosplay_glossy_boots: True "Long Boots"
+    # Cosplay_m_cosplay_school_hoodie_ribbon: True "Ribbon"
+    # Cosplay_m_cosplay_school_hoodie_necktie: True "Necktie"
+    # Cosplay_m_cosplay_school_hoodie_hoodie: True "Hoodie"
+    # Cosplay_m_cosplay_school_hoodie_bag: True "Backpack"
+    # Cosplay_m_cosplay_school_hoodie_shirt: True "Shirt"
+    # Cosplay_m_cosplay_school_hoodie_skirt: True "Skirt"
+    # Cosplay_m_cosplay_school_hoodie_socks: True "Socks"
+    # Cosplay_m_cosplay_school_hoodie_shoes: True "Shoes"
+    # Cosplay_m_cosplay_school_gal_blazer: True "Blazer"
+    # Cosplay_m_cosplay_school_gal_shirt_winter: True "Winter Shirt"
+    # Cosplay_m_cosplay_school_gal_necktie: True "Necktie"
+    # Cosplay_m_cosplay_school_gal_cardigan_winter: True "Winter Cardigan"
+    # Cosplay_m_cosplay_school_gal_skirt: True "Skirt"
+    # Cosplay_m_cosplay_school_gal_bag: True "Bag"
+    # Cosplay_m_cosplay_school_gal_sockes: True "Socks"
+    # Cosplay_m_cosplay_school_gal_shoes: True "Shoes"
+    # Cosplay_m_cosplay_school_gal_earing: True "Earrings"
+    # Cosplay_m_cosplay_school_gal_necklace: True "Necklace"
+    # Cosplay_m_cosplay_school_gal_bracelet: True "Bracelet"
+    # Cosplay_m_cosplay_school_gal_shirt_summer: True "Summer Shirt"
+    # Cosplay_m_cosplay_school_gal_ribbon: True "Ribbon"
+    # Cosplay_m_cosplay_school_gal_cardigan_summer: True "Summer Cardigan"
+
+
+
+	#   m_cosplay_general_upper_kubiwa: True "Collar"
+	#   m_cosplay_general_upper_mufflar: True "Scarf"
+	#   m_cosplay_general_upper_bra: True "Bra"
+	#   m_cosplay_general_upper_race_pants: True "Lace Panties"
+	#   m_cosplay_general_upper_far: True "Fur"
+	#   m_cosplay_general_upper_necktie: True "Necktie"
+	#   m_cosplay_general_upper_body_net: True "Fishnet Shirt"
+	#   m_cosplay_general_upper_randoseru: True "Randoseru"
+	#   m_cosplay_general_upper_glove: True "Gloves"
+	#   m_cosplay_general_upper_ultimate_pants: True "Panties"
+	#   m_cosplay_general_upper_bansoukou: True "Bandage (Nipples)"
+	#   m_cosplay_general_upper_ofuda: True "Ofuda (Nipples)"
+	#   m_cosplay_general_upper_glove_net: True "Fishnet Gloves"
+	#   m_cosplay_general_upper_long_leather_glove: True "Long Leather Gloves"
+	#   m_cosplay_general_upper_full_glove: True "Full Gloves"
+	#   m_cosplay_general_upper_harness: True "Harness"
+	#   m_cosplay_general_upper_swimsuit: True "Competitive Swimsuit"
+	#   m_cosplay_general_upper_sukumizu: True "School Swimsuit"

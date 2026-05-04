@@ -1,0 +1,114 @@
+
+# Table of head-Anonymity cosplay.
+# There are 3 face of Anonymity: mouth, eyes, hair
+# Anonymity value for each is a float between 0 and 1
+# See CheckAnonymity for scoring logic
+DefaultAnonymityTable:
+	table = MakeAnonymityTable()
+
+	table = AppendAnonymityTable(table, "m_cosplay_general_head_mask", CreateList(mouth=1,eyes=0,hair=0))#"Mask"
+	table = AppendAnonymityTable(table, "m_cosplay_general_head_glasses", CreateList(mouth=0,eyes=0.5,hair=0))#"Glasses"
+	table = AppendAnonymityTable(table, "m_cosplay_general_head_sun_glasses", CreateList(mouth=0,eyes=0.9,hair=0))#"Sunglasses"
+	table = AppendAnonymityTable(table, "m_cosplay_general_head_osyaburi", CreateList(mouth=0.33,eyes=0,hair=0))#"Pacifier"
+	table = AppendAnonymityTable(table, "m_cosplay_general_head_kuchikase", CreateList(mouth=0.33,eyes=0,hair=0))#"Gag"
+	table = AppendAnonymityTable(table, "m_cosplay_general_head_eye_censor", CreateList(mouth=0,eyes=1,hair=0))#"Black Censor Bar"
+	table = AppendAnonymityTable(table, "m_cosplay_general_head_mekakushi", CreateList(mouth=0,eyes=1,hair=0))#"Blindfold"
+	table = AppendAnonymityTable(table, "m_cosplay_general_head_houtai", CreateList(mouth=0,eyes=1,hair=0.1))#"Bandage Blindfold"
+	table = AppendAnonymityTable(table, "m_cosplay_ninja_omen", CreateList(mouth=0.1,eyes=1,hair=0.1))#"Face Mask"
+	table = AppendAnonymityTable(table, "m_cosplay_ninja_mask", CreateList(mouth=0.7,eyes=0,hair=0))#"Mask"
+	table = AppendAnonymityTable(table, "m_cosplay_sister_head", CreateList(mouth=0,eyes=0,hair=0.5))#"Veil"
+	table = AppendAnonymityTable(table, "m_cosplay_sister_face", CreateList(mouth=0.8,eyes=0,hair=0))#"Face Veil"
+	table = AppendAnonymityTable(table, "m_cosplay_latex_pony_full_face", CreateList(mouth=1,eyes=1,hair=0.5))#"Full-Face Mask"
+	table = AppendAnonymityTable(table, "m_cosplay_latex_pony_head", CreateList(mouth=0.6,eyes=0,hair=0))#"Headgear"
+
+	##DumpVariable(table,8)
+	_result = table
+
+MakeAnonymityTable:
+	#Log("FC.Anon : > MakeAnonymityTable ")
+	thread = _this
+	table = CreateList()
+	table.array = CreateList()
+
+	# Eyemask added as default because its the only non-cosplay Anonymity
+	table[ "EyeMask"] = CreateList()
+	table[ "EyeMask"].name = "EyeMask" # copy of the string name useful for logging, UI, etc
+	table[ "EyeMask"].face = CreateList(mouth=0,eyes=1,hair=0) #Anonymity! Balance here!
+	table[ "EyeMask"].index = table.array.Count() 
+	table[ "EyeMask"].co = CreateCondition("AdultToy_EyeMask", table.array.Count() )  # condition ID = index. might be useful idk
+	table.array.Insert( table["EyeMask"] ) # indexing this condition to the end of the array
+
+	#Log("FC.Anon : > MakeAnonymityTable exit")
+	exit:
+		_result = table
+	_result = table
+
+# AppendAnonymityTable( AnonymityTable, cosplay string, face=CreateList(mouth=0,eyes=0,hair=0) )
+AppendAnonymityTable:
+	if t == null
+		t = _args[0]
+	if c == null
+		c = _args[1]
+	if face == null
+		face = _args[2]
+	#Log("FC.Anon : > AppendAnonymityTable : " + face) 
+
+	if t[c] != null
+		#Log("FC.Anon : !AppendAnonymityTable : Already exists : "+ t[c].name +" : "+ c)
+		t[c].face = face
+	else
+		t[c] = CreateList()
+		t[c].name = c
+		t[c].face = face 
+		t[c].index = t.array.Count() 
+		t[c].co = CreateCondition("Cosplay_"+c, t.array.Count()) 
+		t.array.Insert( t[c])
+	#Log("FC.Anon :  < AppendAnonymityTable Count : " + t.array.Count() )
+	_result = t
+
+# Check if Anonymity items are equipped, and judge Manakas' identifiability by the following rules:
+# The largest (Max) of each face regions' Anomymity is checked.
+# Two of the three face regions (mouth, eyes, hair) must have greater than 0 Anonymity.
+# Anonymity score is the average of the three face regions, and must exceed the threshold (defined and checked in main code logic)
+CheckAnonymity:
+	if table == null
+		table = _args[0]
+	#Log("FC.Anon : CheckAnonymity > Started ")
+	cm=0 # Anonymity mouth
+	ce=0 # Anonymity eyes
+	ch=0 # Anonymity hair
+	anonymity = 0
+	i = table.array.Count()-1
+	while i>=0 
+		#Log("FC.Anon :  < " +i+ " : " + table.array[i].name)
+		if table.array[i].co.Check() #if concealing item is worn
+			cm=Max(cm, table.array[i].face.mouth)
+			ce=Max(ce, table.array[i].face.eyes)
+			ch=Max(ch, table.array[i].face.hair)
+			# Log(" < " + i +" "+ table.array[i].name )
+		i-=1
+
+	# an_min = Min(cm,ce,ch)
+	# an_max = Max(cm,ce,ch)
+	# anonymity =(an_min+an_max)/2
+	anonymity = Min(1, cm+ce+ch)
+	# Log("CheckAnonymity > Finished: " + anonymity)
+
+	_result=anonymity
+
+
+  # General (Head):
+  #   m_cosplay_general_head_mask: True "Mask"
+  #   m_cosplay_general_head_glasses: True "Glasses"
+  #   m_cosplay_general_head_sun_glasses: True "Sunglasses"
+  #   m_cosplay_general_head_osyaburi: True "Pacifier"
+  #   m_cosplay_general_head_kuchikase: True "Gag"
+  #   m_cosplay_general_head_eye_censor: True "Black Censor Bar"
+  #   m_cosplay_general_head_mekakushi: True "Blindfold"
+  #   m_cosplay_general_head_houtai: True "Bandage Blindfold"
+  #   m_cosplay_ninja_omen: True "Face Mask"
+  #   m_cosplay_ninja_mask: True "Mask"
+  #   m_cosplay_sister_head: True "Veil"
+  #   m_cosplay_sister_face: True "Face Veil"
+  #   m_cosplay_latex_pony_full_face: True "Full-Face Mask"
+  #   m_cosplay_latex_pony_head: True "Headgear"

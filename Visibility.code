@@ -1,0 +1,363 @@
+### Eicosa Original
+
+npcVisThreshold=0.85
+npcVisDistance=4
+
+fovRadians = 1.22 # 1.22=70 degrees
+halfFov = fovRadians / 2
+cosCenter = 1.0 # cos(0°)
+cosEdge   = Cos(halfFov) 
+
+updateViewCurrent:
+	# Log("FC.Common : updateViewCurrent")
+	facing = ManakaDotCamera() * -1
+
+	focusFront = Max(0,facing)
+	if focusFront > viewThresholdFront
+		v=focusFront
+		inMin=viewThresholdFront
+		inMax=1.0
+		outMin=0.0
+		outMax=1.0
+
+		v=Max(v,inMin)
+		v=Min(v,inMax)
+
+		a=(outMax-outMin)*(v-inMin)
+		b=(inMax-inMin)+outMin
+		c=a/b
+
+		viewCurrent.front=c
+		# Log("FC.Common : viewCurrent.face " + c)
+	else
+		viewCurrent.front = 0
+
+	focusSide = 1-Abs(facing)
+	if focusSide > viewThresholdSide
+		viewCurrent.side = Max(focusSide, 1-Abs(facing))
+	else
+		viewCurrent.side = -1
+
+	focusFace = InFocus_Head()
+	if focusFace > viewThresholdFace && facing > 0
+		v=focusFace
+		inMin=viewThresholdFace
+		inMax=1.0
+		outMin=0.0
+		outMax=Max(0, facing)
+
+		v=Max(v,inMin)
+		v=Min(v,inMax)
+
+		a=(outMax-outMin)*(v-inMin)
+		b=(inMax-inMin)+outMin
+		c=a/b
+
+		zoom = 1-CameraDistanceNormalized( _state.CameraTarget.Face )
+		zoomMod = (0.5+zoom)
+		c *= zoomMod
+		# Log("FC.Common : viewCurrent.face " + c)
+		viewCurrent.face=c
+	else
+		viewCurrent.face=0
+
+	focusBody = InFocus_Body()
+	if focusBody> viewThresholdBody
+		v=focusBody
+		inMin=viewThresholdBody
+		inMax=1.0
+		outMin=0.0
+		outMax=1.0
+
+		v=Max(v,inMin)
+		v=Min(v,inMax)
+
+		a=(outMax-outMin)*(v-inMin)
+		b=(inMax-inMin)+outMin
+		c=a/b
+
+		zoom = 1-CameraDistanceNormalized( _state.CameraTarget.Body )
+		zoomMod = (0.5+zoom)
+		c *= zoomMod
+		# Log("FC.Common : viewCurrent.body " + c)
+		viewCurrent.body=c
+	else
+		viewCurrent.body=0
+
+	focusCrotch = InFocus_Crotch()
+	if focusCrotch > viewThresholdCrotch && Abs(facing) > viewThresholdFront
+		v=focusCrotch
+		inMin=viewThresholdCrotch
+		inMax=1.0
+		outMin=0.0
+		outMax=Abs(facing)
+
+		v=Max(v,inMin)
+		v=Min(v,inMax)
+
+		a=(outMax-outMin)*(v-inMin)
+		b=(inMax-inMin)+outMin
+		c=a/b
+
+		zoom = 1-CameraDistanceNormalized( _state.CameraTarget.Crotch )
+		zoomMod = (0.5+zoom)
+		c *= zoomMod
+		# Log("FC.Common : viewCurrent.crotch " + c)
+		viewCurrent.crotch=c
+	else
+		viewCurrent.crotch=0
+		
+	Global("FC.viewCurrent", viewCurrent)	
+	# DumpVariable(viewCurrent,2)
+
+CameraDistanceNormalized: #targetPos
+	if targetPos == null
+		targetPos = _args[0]
+
+	camPos = Vector(_state.Camera.x, _state.Camera.y, _state.Camera.z)
+	focusPos = Vector(targetPos.x, targetPos.y, targetPos.z)
+	dist = Vector3Distance(camPos,focusPos)
+
+	v=dist
+	inMin=0.2 # camera's min distance
+	inMax=1.5 # camera's max distance
+	outMin=0.0
+	outMax=1
+
+	v=Max(v,inMin)
+	v=Min(v,inMax)
+
+	a=(outMax-outMin)*(v-inMin)
+	b=(inMax-inMin)+outMin
+	c=a/b
+
+	_result = c
+
+
+ManakaDir:
+	manq = Quaternion(_state.Position.rx, _state.Position.ry,_state.Position.rz,_state.Position.rw)
+	manv = Vector(0, 0, 1)
+	#Log("FC.Common : manDir ")
+	_result = Vector3Rotate(manq,manv)
+
+CameraDir:
+	camq = Quaternion(_state.Camera.rx, _state.Camera.ry,_state.Camera.rz,_state.Camera.rw)
+	camv = Vector(0, 0, 1)
+	camDir = Vector3Rotate(camq,camv)	
+	#Log("FC.Common : camDir ")
+	_result = camDir
+
+# InFocus_Npc: # npc
+
+# 	_result=focus
+
+InFocus_Head:
+	camPos = Vector(_state.Camera.x, _state.Camera.y, _state.Camera.z)
+	focusPos = Vector(_state.CameraTarget.Face.x, _state.CameraTarget.Face.y, _state.CameraTarget.Face.z)
+	dirToHead = Normalize(Vector3Sub(focusPos,camPos) )
+
+	camq = Quaternion(_state.Camera.rx, _state.Camera.ry,_state.Camera.rz,_state.Camera.rw)
+	camv = Vector(0, 0, 1)
+	camDir = Vector3Rotate(camq,camv)	
+
+	dot = Vector3Dot(dirToHead, camDir)
+	focus=Max(0,dot)
+
+	# focus = dot / dist	
+	#Log("FC.Common : InFocus_Face : " + focus)
+	_result=focus
+
+InFocus_Body:
+	camPos = Vector(_state.Camera.x, _state.Camera.y, _state.Camera.z)
+	focusPos = Vector(_state.CameraTarget.Body.x, _state.CameraTarget.Body.y, _state.CameraTarget.Body.z)
+	dirToBody= Normalize(Vector3Sub(focusPos,camPos))
+
+	camq = Quaternion(_state.Camera.rx, _state.Camera.ry, _state.Camera.rz, _state.Camera.rw)
+	camv = Vector(0, 0, 1)
+	camDir = Vector3Rotate(camq,camv)	
+
+	dot = Vector3Dot(dirToBody, camDir)
+	focus=Max(0,dot)
+
+	# focus = dot / dist	
+	#Log("FC.Common : InFocus_Body : " + focus)
+	_result=focus
+
+InFocus_Crotch:
+	camPos = Vector(_state.Camera.x, _state.Camera.y, _state.Camera.z)
+	focusPos = Vector(_state.CameraTarget.Crotch.x, _state.CameraTarget.Crotch.y, _state.CameraTarget.Crotch.z)
+	dirToCrotch = Normalize(Vector3Sub(focusPos,camPos))
+
+	camq = Quaternion(_state.Camera.rx, _state.Camera.ry,_state.Camera.rz,_state.Camera.rw)
+	camv = Vector(0, 0, 1)
+	camDir = Vector3Rotate(camq,camv)	
+
+	dot = Vector3Dot(dirToCrotch, camDir)
+	focus=Max(0,dot)
+
+	#Log("FC.Common : InFocus_Crotch : " + focus)
+	_result=focus
+
+ManakaDotCamera:
+	# Manaka's direction
+	manq = Quaternion(_state.Position.rx, _state.Position.ry,_state.Position.rz,_state.Position.rw)
+	manv = Vector(0, 0, 1)
+	#Log("FC.Common : manDir ")
+	manDir =  Vector3Rotate(manq,manv)
+	##DumpVariable( manDir, 4)
+
+	# Cameras's direction
+	camq = Quaternion(_state.Camera.rx, _state.Camera.ry,_state.Camera.rz,_state.Camera.rw)
+	camv = Vector(0, 0, 1)
+	#Log("FC.Common : camDir ")
+	camDir = Vector3Rotate(camq,camv)
+	##DumpVariable( camDir, 4)
+
+	vdot = Vector3Dot(manDir, camDir)
+	#Log("FC.Common : Manaka facing camera : " + vdot)
+	_result = vdot
+
+NpcDotCamera: #npc [, camera]
+	if npc == null
+		npc = _args[0]
+	if cam == null
+		cam = _args[1]
+	if cam == null
+		cam = _state.Camera
+			
+	# NPC's direction
+	npcq = Quaternion(npc.Position.rx, npc.Position.ry,npc.Position.rz,npc.Position.rw)
+	npcv = Vector(0, 0, 1)
+	#Log("FC.Common : npcDir ")
+	npcDir =  Vector3Rotate(npcq,npcv)
+	##DumpVariable( npcDir, 4)
+
+	# Cameras's direction
+	camq = Quaternion(cam.rx, cam.ry,cam.rz,cam.rw)
+	camv = Vector(0, 0, 1)
+	#Log("FC.Common : camDir ")
+	camDir = Vector3Rotate(camq,camv)
+	##DumpVariable( camDir, 4)
+
+	vdot = Vector3Dot(npcDir, camDir)
+	#Log("FC.Common : NPC facing camera : " + vdot)
+	_result = vdot
+
+InFocus_NPC: #npc [, camera]
+	if npc == null
+		npc = _args[0]
+	if cam == null
+		cam = _args[1]
+	if cam == null
+		cam = _state.Camera
+
+	focus = 0.0
+	camPos = Vector(cam.x, cam.y, cam.z)
+	focusPos = Vector(npc.Position.x, npc.Position.y, npc.Position.z)
+	dirToNpc = Normalize(Vector3Sub(focusPos,camPos))
+	dist = Vector3Distance(camPos,focusPos)
+
+	if !npc.SeesPlayer && dist > npcVisDistance
+		# Log("FC.Common : InFocus_NPC :  NPC looking away or outside of range : "+ npc.ID+" "+npc.SeesPlayer+" "+dist )
+		focus = 0
+		_result = focus
+		return
+	else
+		camq = Quaternion(cam.rx, cam.ry,cam.rz,cam.rw)
+		camv = Vector(0, 0, 1)
+		camDir = Vector3Rotate(camq,camv)
+
+		dot = Vector3Dot(dirToNpc, camDir)
+		focus = Max(0,dot)
+		# Log("FC.Common : InFocus_NPC : focus "+ npc.ID+" "+ focus)
+
+		if focus < npcVisThreshold
+			focus = 0
+		else
+			# Log("FC.Common : InFocus_NPC :  Visible! : "+ npc.ID+" "+npc.SeesPlayer+" "+dist )
+			focus = Max(1,dist/npcVisDistance)
+
+		manPos=Vector(_state.Position.x,_state.Position.y,_state.Position.z)
+		Log("FC.Common : is_between : " + is_between(Copy(manPos), Copy(camPos), Copy(focusPos), 0.1))
+
+		Log("FC.Common : InFocus_NPC : "+npc.ID+" "+  focus)
+	_result=focus
+
+
+is_between: #a=Vector3, b=Vector3, point=Vector3, tolerance=float = 0.01
+
+	# Check if 'point' lies between Vector3 positions 'a' and 'b'.
+	# Uses the parametric approach: project 'point' onto the line AB,
+	# then check if the parameter t is in [0, 1] and the point is close enough.
+	a = _args[0]
+	b = _args[1]
+	point = _args[2]
+	tolerance = _args[3]
+	dist_sq = -1
+	outputReady=false
+	thread = CreateThread("betweenMath")
+
+	betweenMath:
+		# Direction vector AB
+		ab_x = b.x - a.x
+		ab_y = b.y - a.y
+		ab_z = b.z - a.z
+
+		# Vector from A to Point
+		ap_x = point.x - a.x
+		ap_y = point.y - a.y
+		ap_z = point.z - a.z
+
+		# Dot products
+		ab_dot_ab = ab_x**2 + ab_y**2 + ab_z**2          # Squared length of AB
+		ap_dot_ab = ap_x * ab_x + ap_y * ab_y + ap_z * ab_z  # Projection of AP onto AB
+
+		# Avoid division by zero (a and b are the same point)
+		if ab_dot_ab == 0
+			dist_sq = -10
+			outputReady=true
+			_result=false
+			Log("FC.Common : is_between exit - (a and b are the same point)")
+			_this.Goto("WaitForOutput")
+
+		# t is where the point projects onto the line (0 = at A, 1 = at B)
+		t = ap_dot_ab / ab_dot_ab
+
+		# t must be in [0, 1] to be between A and B
+		if (0.0 <= t) || (t >= 1.0)
+			dist_sq = -20
+			outputReady=true
+			_result=false
+			Log("FC.Common : is_between exit - Point is not between A and B")
+			_this.Goto("WaitForOutput")
+
+		# Find the closest point on the segment to our point
+		closest_x = a.x + t * ab_x
+		closest_y = a.y + t * ab_y
+		closest_z = a.z + t * ab_z
+
+		# Check if the point is close enough to the segment (within tolerance)
+		dist_sq = (point.x - closest_x)**2 + (point.y - closest_y)**2 + (point.z - closest_z)**2
+		outputReady=true
+		Log("FC.Common : is_between succesful : " + dist_sq)
+
+		WaitForOutput:
+			thread.Goto("Output")
+
+		Output:
+			if !outputReady
+				Log("FC.Common : betweenMath Output !outputReady" + _result)
+				thread.Goto("WaitForOutput")
+
+			if dist_sq < 0 # betweenMath has not provided result yet, or there was error
+				if dist_sq > -10 # result not ready
+					thread.Goto("WaitForOutput")
+				else # other error
+					_result=false
+
+			if dist_sq <= tolerance**2
+				_result=true
+			else 
+				_result=false
+
+	_result = thread.Output()

@@ -1,0 +1,27 @@
+
+# 设置
+# Settings
+# 
+
+# Input
+debugInput = CreateInput("<Keyboard>/p")
+photoInput = CreateInput("<Keyboard>/v")
+
+# game settings
+fansBump = 1
+scorevips = 0.0
+vipsBumpChance = 0.5
+scorePerVip = 1
+vip_requestScore = 100
+vip_requestPartMultiplier = 1.2
+vipRewardScale = 1
+anonThreshold = 0.3
+
+# backwards compatibility 
+conditionScoreScale = _settings.conditionScoreScale
+anonRefusal = _settings.anonRefusal
+lowAnonTriggerChance = _settings.lowAnonTriggerChance
+photoCooldown = _settings.photoCooldown
+useAbstractRisk = _settings.useAbstractRisk
+
+

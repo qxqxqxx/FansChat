@@ -1,0 +1,726 @@
+### FansChat MOD
+
+# Localization
+# 
+Tx = CreateList()
+Global("FC.Tx", Tx)
+
+
+# 变量
+# Working variables
+nextPayout = 0
+galleryRPSum = 0
+viewThresholdSide = 0.33
+viewThresholdFront = 0.33
+viewThresholdFace = 0.8
+viewThresholdBody = 0.5
+viewThresholdCrotch = 0.8
+viewThresholds = CreateList(front=viewThresholdFront, face=viewThresholdFace, body=viewThresholdBody, crotch=viewThresholdCrotch, side=viewThresholdSide)
+viewCurrent = CreateList(front=-1.0, face=-1.0, body=-1.0, crotch=-1.0, side=-1.0)
+anon = 0
+chatOpenAlready = False
+photoCool = _settings.photoCooldown
+debugTimer = 0
+anonGaugeTimer=0
+mainTimer = 0
+secondsTimer = 0
+mainLoopPeriod = 0.1 # frequency for main loop to do periodic checks.
+fans_hypeTarget = 200+_state.Rank # every x hype, number of fans increases!
+fans_hype = 0
+mp_cam = CreateMissionPanel()
+mp_hype = CreateMissionPanel()
+mp_anon = CreateMissionPanel()
+mp_anon.SetText("Anonymity : ")
+mp_anon.SetVisible(false)
+mp_anon.SetGaugeVisible(true)
+mp_anon.SetGaugeProgress(0)
+
+# 常量
+# Data
+scoreTable = DefaultScoreTable()
+anonTable = DefaultAnonymityTable()
+
+# Assets
+sndChatNotify=CreateAudio("snd/quiet_ui_menu_button_confirm_13.ogg")
+sndCamera=CreateAudio("snd/theplax__camera-beep-and-click.wav")
+
+# Save
+if _save.fans==null
+	_save.fans = 10
+
+# -----------------------------------------
+# 文本函数
+# -----------------------------------------
+get_fanschat_normal_prefix_list:
+	_result = CreateList(Tx.FansChat_NormalPrefix_0,Tx.FansChat_NormalPrefix_1,Tx.FansChat_NormalPrefix_2,Tx.FansChat_NormalPrefix_3,Tx.FansChat_NormalPrefix_4,Tx.FansChat_NormalPrefix_5)
+
+get_fanschat_normal_suffix_list:
+	_result = CreateList(Tx.FansChat_NormalSuffix_0,Tx.FansChat_NormalSuffix_1,Tx.FansChat_NormalSuffix_2,Tx.FansChat_NormalSuffix_3,Tx.FansChat_NormalSuffix_4,Tx.FansChat_NormalSuffix_5)
+
+get_fanschat_vip_prefix_list:
+	_result = CreateList(Tx.FansChat_VIPPrefix_0,Tx.FansChat_VIPPrefix_1,Tx.FansChat_VIPPrefix_2,Tx.FansChat_VIPPrefix_3,Tx.FansChat_VIPPrefix_4,Tx.FansChat_VIPPrefix_5)
+
+get_fanschat_vip_suffix_list:
+	_result = CreateList(Tx.FansChat_VIPsuffix_0,Tx.FansChat_VIPsuffix_1,Tx.FansChat_VIPsuffix_2,Tx.FansChat_VIPsuffix_3,Tx.FansChat_VIPsuffix_4,Tx.FansChat_VIPsuffix_5)
+
+# -----------------------------------------
+# Start Main
+# -----------------------------------------
+mainthread = 0
+loadThread = CreateThread("load")
+
+
+load:
+	Log("FC Loading")
+	if _save.fans == null
+		_save.fans = 10
+	if Global("FC.fans") == null
+		Global("FC.fans",_save.fans) 
+
+	if _settings.EN
+		locale = CreateThread("Locale_EN")
+	# elseif _settings.CN
+	# 	locale = CreateThread("Locale_CN")
+
+	Tx = locale.Output()
+	Global("FC.Tx", Tx)
+
+	mainthread = CreateThread("mainThread")
+
+mainThread:
+	Log("FC mainThread")
+	thread = _this
+	chat = CreateMessengerChat("FansChat", iconcolor = Color(1,0,0.5), icontext = "(.)(.)", icontextcolor = Color(1,0.33,0.66))
+
+
+	area_lastHunting=false
+	area_lastSize=3
+	area_lastSent=CreateArea(type="cylinder", stage=_state.Position.stage, x=_state.Position.x, y=_state.Position.y,z=_state.Position.z,r=area_lastSize,h=99,outline=true,compass=false)
+	area_lastSent.SetVisible(true)
+	area_list = CreateList(area_lastSent)
+	zone_risk = CreateZone(area_list)
+	zone_risk.SetVisible(true)
+	colSafe = Color(0.25,0.5,1,1)
+	colRisk = Color(2,0.33,0.66,1)
+	area_lastAlpha = 1
+	showAreaSafe()
+
+	debuglooper = CreateListener("debugloop")
+	photoCooler = CreateListener("photoCooling")
+	anonGaugeLoop = CreateListener("anonGauge")
+	mainLooper = CreateListener("mainLoop")
+
+	mp_vip = CreateMissionPanel()
+	mp_vip.SetVisible(true)
+
+	mp_cam.SetText("FansChat Rate Limit")
+	mp_cam.SetGaugeVisible(true)
+	mp_cam.SetGaugeProgress(0)
+	mp_cam.SetVisible(true)
+
+	mp_hype.SetText("Fan Hype")
+	mp_hype.SetVisible(false)
+	mp_hype.SetGaugeVisible(true)
+	mp_hype.SetGaugeProgress(0)
+
+	if _save.fans == null
+		_save.fans = 10
+
+	update_vip_mp:
+		init_vip_system()
+	
+		if mp_vip == null
+			_result = false
+			return
+	
+		if !has_valid_vip_request()
+			mp_vip.SetText(Tx.FansChat_VIP_None)
+			mp_vip.SetRPText("")
+			mp_vip.SetVisible(true)
+			_result = true
+			return
+
+		request_text = get_vip_request_text()
+		mp_vip.SetText(request_text)
+		mp_vip.SetRPText("")
+		mp_vip.SetVisible(true)
+
+		_result = true
+	
+	thread.Goto("step1")
+
+	step1:
+		galleryRPSum = 0
+		# Log("FC.main: STEP1 before refresh active=" + _save.vip_request_active + " request=" + _save.vip_request)
+		refresh_vip_request()
+		# Log("FC.main: STEP1 after refresh active=" + _save.vip_request_active + " request=" + _save.vip_request)
+
+		init_vip_system()
+		update_vip_mp()
+
+		chat.Add(Tx.FansChat_FansPrefix +_save.fans, "Left", silent=true)
+		chat.Add(get_vip_request_text(), "Left", silent=true)
+
+		listener = CreateListener("waitForCooldown")
+
+		waitForCooldown:
+			if photoCool >= _settings.photoCooldown
+				btnLabelTake=Tx.FansChat_Button_TakePhoto
+				btnLabelDeny=Tx.FansChat_Button_RequestDeny
+				buttonIdMain=CreateList(btnLabelTake=0,btnLabelDeny=1)
+				chat.SetButtons(Tx.FansChat_Button_TakePhoto,Tx.FansChat_Button_RequestDeny,buttonIdMain)
+				listener = CreateListener("waitforbutton")
+			else
+				chat.SetButtons()
+
+		waitforbutton:
+			if (chat.Clicked() != null && chat.Clicked() == 0) || photoInput.WasPressed()
+				if Find("Apart", _state.Position.stage) >= 0
+					thread.Goto("homeWarning")
+				else
+					thread.Goto("photoNowTake")
+			elseif chat.Clicked() != null && chat.Clicked() == 1
+				thread.Goto("denyRequest")
+
+	denyRequest:
+		updateGlobals()
+		chat.Clear()
+		chat.SetButtons()
+		generate_vip_request()
+		sanitize_vip_request()
+		update_vip_mp()
+		penalty = GetCurrentEarnRP()-100
+		SetCurrentEarnRP = Max(0, penalty)
+		chat.Add("Bribed moderators to remove the request: -100 RP.", "Right", silent=true)
+		chat.Add("Some fans were dissapointed and left.", "Right", silent=true)
+		_save.fans = Ceil(_save.fans * 0.9)
+		Global("FC.fans", _save.fans)
+		thread.Goto("step1")
+
+	photoNowTake:
+		updateGlobals()
+		updateViewCurrent()
+		chat.Clear()
+		photoCool = 0
+		anon=0
+		anonGaugeTimer=0
+
+		if viewCurrent.face>0.25 && viewCurrent.front>0
+			anon=CheckAnonymity(anonTable)
+		else 
+			anon=1
+
+		Global("FC.anonymity", anon)
+		
+		if anon < _settings.anonRefusal
+			thread.Goto("refusePhoto")
+			return
+		else	
+			chat.SetButtons()
+			camDir = Vector3Rotate(_state.Camera, Vector(0,0,1)) 
+			camPos = Vector(_state.Camera.x, _state.Camera.y, _state.Camera.z)
+			targetPos = Vector(_state.CameraTarget.Body.x, _state.CameraTarget.Body.y, _state.CameraTarget.Body.z)
+			snapshotobject = CreateSnapshot(position = _state.Camera, direction = camDir, width = 512, height = 512, fov = 60)
+
+			lowAnon = false
+			if anon < _settings.anonThreshold || zone_risk.Inside() || zone_risk.DistanceToNearest()<0.2
+				area_lastHunting=true
+				area_lastAlpha=1
+				lowAnon = true
+				Log("FC.main: Low anonymity photo allowed, hunter risk enabled.")
+			else
+				area_lastHunting=false
+				area_lastAlpha=1
+
+			thread.Goto("photoNowSend", sso=snapshotobject, lowAnon=lowAnon)
+
+	photoNowSend:
+		if lowAnon == null
+			lowAnon = false
+
+		file = sso.Save(hidden = false)
+		sso = null
+
+		# flash!
+		if _settings.cam_Flash
+			ShowBlackscreen(color=Color(1, 1, 1, 0.1),  delay=0.1, fadein=0.05, duration=0.05, fadeout=0.25)
+		sndCamera.Play(0.1)
+
+		# area!
+		areasUpdate()
+
+		chat.Add(file, "Right", user="M-chan", silent=true)
+
+		hunterChance = _settings.hunterChance * (1- anon)
+		hunterLevel = 1
+
+		if viewCurrent.face > 0.2
+			faceRisk = 1.0 - anon
+			headRisk = (viewCurrent.face - 0.5) * 2.0
+		
+			if faceRisk < 0
+				faceRisk = 0
+			elseif faceRisk > 1
+				faceRisk = 1
+		
+			if headRisk < 0
+				headRisk = 0
+			elseif headRisk > 1
+				headRisk = 1
+		
+			totalRisk = faceRisk * 0.7 + headRisk * 0.3
+		
+			if totalRisk <= 0.5
+				hunterChance = 0.2 * (totalRisk / 0.5)
+			elseif totalRisk >= 1.2
+				hunterChance = 0.8
+			else
+				t = (totalRisk - 0.5) / 0.7
+				t = t * t
+				hunterChance = 0.2 + t * 0.6
+		
+			if hunterChance < 0.15
+				hunterLevel = 1
+			elseif hunterChance < 0.3
+				hunterLevel = 2
+			else
+				hunterLevel = 3
+
+		if lowAnon
+			if anon < 0.08
+				hunterLevel = 3
+			elseif anon < 0.14
+				hunterLevel = Max(hunterLevel, 2)
+			else
+				hunterLevel = Max(hunterLevel, 1)
+
+		maxReplies = 0
+		if hunterLevel == 1
+			maxReplies = RandomInt(0, 2)
+		elseif hunterLevel == 2
+			maxReplies = RandomInt(1, 3)
+		else
+			maxReplies = RandomInt(2, 4)
+
+		replyChatData = CreateList()
+
+		i = 0
+		while i < maxReplies
+
+			vipChance = 0.2
+			if hunterLevel == 2
+				vipChance = 0.35
+			elseif hunterLevel == 3
+				vipChance = 0.55
+
+			isVIP = Random() < vipChance
+
+			if !isVIP
+				prefix = get_fanschat_normal_prefix_list()
+				suffix = get_fanschat_normal_suffix_list()
+			else
+				prefix = get_fanschat_vip_prefix_list()
+				suffix = get_fanschat_vip_suffix_list()
+
+			p = prefix[RandomInt(0, prefix.Count())]
+			s = suffix[RandomInt(0, suffix.Count())]
+
+			msg = ""
+			if Random() < 0.75
+				msg = p + "，" + s
+			else
+				msg = p
+
+			replyChatData[i] = CreateList(text=msg, align="Left", user="", delay=0.5)
+
+			i = i + 1
+
+		thread.Goto("photoNowSend_afterReply", imageRef=file, lowAnon=lowAnon, hunterLevel=hunterLevel, hunterChance=hunterChance, replyChatData=replyChatData)
+	
+	photoNowSend_afterReply:
+		spawnPos = get_hunter_spawn_pos()
+
+		if spawnPos == null
+			if _state != null && _state.Position != null
+				spawnPos = _state.Position
+
+		if lowAnon
+			chat.Add(Tx.FansChat_LowAnonDanger, "Right", silent=false)
+			
+			# Log("FC.main: lowAnon check")
+			if Random() < lowAnonTriggerChance
+				data = GetSnapshotData(imageRef)
+
+				position = null
+				if data != null
+					if data.Camera != null
+						position = data.Camera
+
+				if position == null
+					if _state != null && _state.Position != null
+						position = _state.Position
+
+				if position == null
+					position = spawnPos
+
+				# Log("FC.main: lowAnon hunter spawn")
+				# Log("FC.main: send hunter | warnPos=" + position + " spawnPos=" + spawnPos)
+
+				if spawnPos != null
+					# Log("FC.main: send hunter | spawn stage=" + spawnPos.stage + " x=" + spawnPos.x + " y=" + spawnPos.y + " z=" + spawnPos.z)
+				else
+					# Log("FC.main: send hunter | spawnPos is null")
+				
+				# Log("FC.main: about to send hunter_warning")
+				SetEvent("hunter_warning", CreateList(position=position, area=_state.Position.stage, level=hunterLevel, anon=anon))
+				# Log("FC.main: hunter_warning sent")
+
+				if spawnPos != null
+					if spawnPos != null
+						if position != null
+							Global("fanschat_target_stage", position.stage)
+							Global("fanschat_target_x", position.x)
+							Global("fanschat_target_y", position.y)
+							Global("fanschat_target_z", position.z)
+							# Log("FC.main: FansChat: saved target stage=" + position.stage + " x=" + position.x + " y=" + position.y + " z=" + position.z)
+						else
+							# Log("FC.main: direct add hunter")
+							# Log("FC.main: FansChat: save target skipped, position null")
+						SetEvent("hunted_add_hunter", CreateList(source="FansChat", avatar_type="NewMale", position=spawnPos))
+					else
+						# Log("FC.main: direct add hunter skipped: spawnPos null")
+				else
+					# Log("FC.main: fanschat_spawn_hunter skipped: spawnPos null")
+
+		elseif Random() < hunterChance
+			data = GetSnapshotData(imageRef)
+
+			position = null
+			if data != null
+				if data.Camera != null
+					position = data.Camera
+
+			if position == null
+				if _state != null && _state.Position != null
+					position = _state.Position
+
+			if position == null
+				position = spawnPos
+
+			# Log("FC.main: send hunter | warnPos=" + position + " spawnPos=" + spawnPos)
+
+			if spawnPos != null
+				# Log("FC.main: send hunter | spawn stage=" + spawnPos.stage + " x=" + spawnPos.x + " y=" + spawnPos.y + " z=" + spawnPos.z)
+			else
+				# Log("FC.main: send hunter | spawnPos is null")
+
+			# Log("FC.main: about to send hunter_warning")
+			# if spawnPos != null
+			# 	if position != null
+			# 		Global("fanschat_target_stage", position.stage)
+			# 		Global("fanschat_target_x", position.x)
+			# 		Global("fanschat_target_y", position.y)
+			# 		Global("fanschat_target_z", position.z)
+			# 		Log("FC.main: FansChat: saved target stage=" + position.stage + " x=" + position.x + " y=" + position.y + " z=" + position.z)
+			# 	else
+			# 		Log("FC.main: FansChat: save target skipped, position null")
+			# 	Log("FC.main: direct add hunter")
+			# 	SetEvent("hunted_add_hunter", CreateList(source="FansChat", avatar_type="NewMale", position=spawnPos))
+			# else
+			# 	Log("FC.main: direct add hunter skipped: spawnPos null")
+			# Log("FC.main: hunter_warning sent")
+			rand = Random()
+			if rand>0.5
+				SetEvent("hunted_alert_hunters", CreateList(count=1,position=_state.Position)) #args is optional, SetEvent("hunted_alert_hunters") works too
+				# Log("FC.main: alerted hunters! : (count=1,position=_state.Position)")
+			elseif spawnPos != null
+				SetEvent("fanschat_spawn_hunter", CreateList(position=spawnPos, area=_state.Position.stage, level=hunterLevel, anon=anon))
+			else
+				SetEvent("hunted_alert_hunters", CreateList(count=1,position=_state.Position)) #args is optional, SetEvent("hunted_alert_hunters") works too
+				# Log("FC.main: fanschat_spawn_hunter skipped: spawnPos null")
+			
+		thread.Goto("scorePhoto", imageRef=imageRef, lowAnon=lowAnon, replyChatData=replyChatData)	
+	
+	scorePhoto:
+		# Log("FC.main: SP enter")
+		photo = GetSnapshotData(imageRef)
+		if photo == null
+			Log("FC.main: scorePhoto: photo is null")
+			thread.Goto("step1")
+			return
+	
+		# Log("FC.main: scorePhoto " + photo)
+		PlaySoundEffect("UiDecide", 0.66)
+	
+		if has_valid_vip_request()
+			if apply_vip_current_result()
+				chat.Add(Tx.FansChat_VIP_Completed, "Left", silent=false)
+
+		photo = ConditionsToSnapshotData(ssd=photo, sTable=scoreTable, requireExposure=false)
+
+		resultData = ScoreSnapshotData(sTable=scoreTable, cssd=photo)
+		basis = Max(0, resultData.rp)
+		basis *= _settings.conditionScoreScale
+		# Log("FC.main: Basis: " + basis)
+		Log("FC.main: Best Condition: "+ resultData.highestName)
+		# Log("FC.main: Best Condition Score: "+ resultData.highestScore)
+		bestName = resultData.highestName
+		bestScore = resultData.highestScore
+
+		arisk=1
+		if useAbstractRisk
+			arisk = (photo.Detection + photo.RpBonus)/2
+		# Log("FC.main: arisk: " + arisk)
+
+		fanScore = Ceil(_save.fans*_settings.score_fansScale - _settings.fans_boredom*_state.Rank)
+		# Log("FC.main: fanScore: " + fanScore)
+
+		score = 0
+		if basis > 0
+			score = (basis+fanScore)/2 * arisk
+		Log("FC.main: Score: " + score)
+
+		nextPayout = score
+		if score > 0
+			nextPayout = Ceil(nextPayout)
+		# Log("FC.main: nextPayout: " + nextPayout)
+
+		newFans = 0
+		if score > 0
+			fans_hype += (bestScore * arisk) - (_settings.fans_boredom*_state.Rank/2)
+			mp_hype.SetVisible(true)
+			mp_hype.SetGaugeProgress(fans_hype / fans_hypeTarget)
+		if fans_hype > fans_hypeTarget
+			PlaySoundEffect("RankUp", 1)
+			newFans = Ceil(100 * _settings.fans_bumpScale * (1+_state.Rank/7))
+			fans_hype = 0
+			#mp_hype.SetVisible(false)
+			mp_hype.SetGaugeProgress(0)
+			_save.fans += newFans
+		Global("FC.fans_hype",fans_hype)
+		Global("FC.fans",_save.fans)
+
+		startf = 0
+		endf = 0
+		roundA = Find("(", bestName)
+		roundB = Find(")", bestName)
+		squareA = Find("[", bestName)
+		squareB = Find("]", bestName)
+		comma = Find(",", bestName)
+
+		wip_startf=0
+		if roundA<=2
+			wip_startf=Max(wip_startf,roundA+1)
+		if squareA<=2
+			wip_startf=Max(wip_startf,squareA+1)
+		startf = wip_startf
+
+		wip_endf = Length(bestName)-1
+		if comma > 0
+			wip_endf = Min(wip_endf,comma)
+		if roundB > 0
+			wip_endf = Min(wip_endf,roundB)
+		if squareB > 0
+			wip_endf = Min(wip_endf,squareB)
+		endf = Max(startf+1, wip_endf)
+
+		scoreChatData = CreateList()
+		scoreChatData.Insert( CreateList(text="" + nextPayout + Tx.FansChat_RP_Suffix, align="Left", user="", delay=0.5) )
+		if newFans > 0
+			scoreChatData.Insert( CreateList(text="" + newFans + Tx.FansChat_NewFans_Suffix, align="Left", user="", delay=0.5) )
+
+		if Length(bestName)>1 && endf>startf
+			bestName = SubString(bestName, start=startf, end=endf)
+			scoreChatData.Insert( CreateList(text=Tx.FansChat_BestPrefix + bestName + Tx.FansChat_BestSuffix, align="Left", user="", delay=0.5) )
+
+		mergedChatData = CreateList()
+		mergeIndex = 0
+
+		i = 0
+		while scoreChatData[i] != null
+			mergedChatData[mergeIndex] = scoreChatData[i]
+			mergeIndex = mergeIndex + 1
+			i = i + 1
+
+		if replyChatData != null
+			i = 0
+			while replyChatData[i] != null
+				mergedChatData[mergeIndex] = replyChatData[i]
+				mergeIndex = mergeIndex + 1
+				i = i + 1
+		thread.Goto("chatoutput", data=mergedChatData, nextstep="awardRp")
+
+	awardRp: 
+		AddCurrentEarnRP(nextPayout)
+		PlaySoundEffect("UICompleteMission", 0.5)
+		thread.Goto("step1")
+
+	refusePhoto:
+		area_lastAlpha=1
+		chatdata = CreateList()
+		chatdata[0] = CreateList(text=Tx.FansChat_RefuseFace, align="Right", user="Manaka", delay=0)
+		thread.Goto("chatoutput", data=chatdata, nextstep="step1")
+
+
+	homeWarning:
+		chatdata = CreateList()
+		chatdata[0] = CreateList(text=Tx.FansChat_HomeWarning, align="Right", user="", delay=0)
+		thread.Goto("chatoutput", data=chatdata, nextstep="step1")
+
+	chatoutput:
+		if index == null
+			index = 0
+		listener = CreateListener("delay", debugTimer=data[index].delay)
+			
+		delay:
+			if time == null
+				time = 0
+			time = time + _timediff
+			if time > debugTimer
+				if data[index].text != null
+					if data[index].user == null
+						chat.Add(data[index].text, data[index].align, silent=true)
+					else
+						chat.Add(data[index].text, data[index].align, user=data[index].user, silent=true)
+				if data[index+1] != null
+					thread.Goto("chatoutput", data=data, index=index+1, nextstep=nextstep)
+				else
+					thread.Goto(nextstep)
+
+	mainLoop: 
+	# checks every frame
+		mainTimer+=_timediff
+		secondsTimer+=_timediff
+		if secondsTimer>=1
+			secondsTimer=0
+
+		if _stagechanged
+			fans_hypeTarget = 200+_state.Rank
+
+			if _state.Position.stage == "Apart"
+				fans_hype = 0
+			areasReset()
+			updateGlobals()
+
+		if area_lastHunting	
+			area_lastAlpha = Sin(secondsTimer*6)*0.1 # 3 loops per second
+			area_lastAlpha = Max(0, area_lastAlpha)
+			showAreaRisk()
+		else
+			area_lastAlpha -= _timediff/20 #eg. _timediff/5  means 5 seconds of fade
+			area_lastAlpha = Max(0, area_lastAlpha)
+			showAreaSafe()
+	# periodic checks
+		if mainTimer>mainLoopPeriod || _stagechanged
+			mainTimer=0
+			updateViewCurrent()
+			anon = CheckAnonymity(anonTable)
+			if chat.Opened()
+				area_lastAlpha = 1
+
+	showAreaSafe:
+		area_lastSent.SetColor(colSafe.r, colSafe.g, colSafe.b, area_lastAlpha)
+		zone_risk.SetColor(colSafe.r, colSafe.g, colSafe.b, area_lastAlpha)
+	showAreaRisk:
+		area_lastSent.SetColor(colRisk.r, colRisk.g, colRisk.b, area_lastAlpha)
+		zone_risk.SetColor(colRisk.r, colRisk.g, colRisk.b, area_lastAlpha)
+	areasUpdate:
+		if _state.Position.stage != "Convenience" && _state.Position.stage != "FashionShop"
+			area_lastSent=CreateArea(type="cylinder", stage=_state.Position.stage, x=_state.Position.x, y=_state.Position.y,z=_state.Position.z,r=area_lastSize,h=20,outline=true,compass=false)
+			area_lastSent.SetVisible(true)
+
+			area_list.Insert(area_lastSent)
+			zone_risk = CreateZone(area_list)
+			zone_risk.SetVisible(true)
+
+			area_lastAlpha = 1
+			if area_lastHunting	
+				showAreaRisk()
+			else
+				showAreaSafe()
+	areasReset:
+		area_lastSent=CreateArea(type="cylinder", stage="Apart", x=0, y=0,z=0,r=area_lastSize,h=20,outline=true,compass=false)
+		area_lastSent.SetVisible(false)
+		area_list = CreateList(area_lastSent)
+		zone_risk = CreateZone(zone_risk)
+		zone_risk.SetVisible(false)
+		showAreaSafe()
+
+	anonGauge:
+		if anonGaugeTimer==null
+			anonGaugeTimer=0
+
+		if chat != null
+			if (_stagechanged || chat.Opened() ) 
+				if viewCurrent.face > 0.1
+					anonGaugeTimer=0
+			if anonGaugeTimer <3 
+				mp_anon.SetVisible(true)
+				mp_anon.SetGaugeProgress( CheckAnonymity(anonTable) )
+			else 
+				mp_anon.SetVisible(false)
+		anonGaugeTimer+=_timediff
+
+	photoCooling:
+		if photoCool >= _settings.photoCooldown
+			mp_cam.SetVisible(false)
+		else
+			photoCool += _timediff
+			mp_cam.SetVisible(true)
+			mp_cam.SetGaugeProgress( photoCool / Max(0.1, _settings.photoCooldown) )
+		photoCool = Min(photoCool, _settings.photoCooldown)
+		Global("FC.photoCool", photoCool)
+
+	updateGlobals:
+		if Global("FC.fans") == null
+			Global("FC.fans",_save.fans)
+		else 
+			_save.fans = Global("FC.fans")
+
+		if Global("FC.fans_hype") == null
+			Global("FC.fans_hype",fans_hype)
+		else 
+			fans_hype = Global("FC.fans_hype")
+
+		if Global("FC.photoCool") == null
+			Global("FC.photoCool",photoCool)
+		else 
+			photoCool = Global("FC.photoCool")
+
+		anon = CheckAnonymity(anonTable)
+		if Global("FC.anonymity") == null
+			Global("FC.anonymity",anon)
+		else 
+			anon = Global("FC.anonymity")
+
+		if Global("FC.scoreTable") == null
+			Global("FC.scoreTable",scoreTable)
+
+		if Global("FC.zone_Risk") == null
+			Global("FC.zone_Risk",zone_Risk)
+
+		if Global("FC.viewCurrent") == null
+			Global("FC.viewCurrent", viewCurrent)
+
+	# 调试循环，仅用于测试和记录算法
+	debugloop:
+		debugTimer = debugTimer + _timediff
+		if debugTimer > 0.5 && debugInput.IsPressed()
+			##DumpVariable(_state,2)
+			DumpVariable(viewCurrent,3)
+			# Log("FC.main : area_lastSent.Inside() : " + area_lastSent.Inside())
+			# Log("FC.main : area_lastSent.Distance() : " + area_lastSent.Distance())
+
+			i = _state.NPCs.Count()
+			while i > 0
+				i -= 1
+				npc = Copy(_state.NPCs[i],deepCopy=true)
+				focus = InFocus_NPC(npc, _state.Camera)
+				if focus > 0
+					Log("FC.CR: NPC is in view : " + focus)
+					#DumpVariable(npc,2)	
+
+			debugTimer = 0
+	## Max camera distance: 1.5
+	## Min camera distance 3rd person: 0.2
+	## Min camera distance 1st person: 0.12

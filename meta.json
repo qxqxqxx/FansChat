@@ -1,0 +1,244 @@
+{
+	"title":{
+		"En":"FansChat"
+	},
+	"defaultactive":true,
+	"settings":[
+		{
+			"type":"Label",
+			"title":"Language - 语言"
+		},
+		{
+			"name":"EN",
+			"title":"EN English",
+			"type":"Boolean",
+			"default":true
+		},
+		{
+			"name":"CN",
+			"title":"中文 Chinese",
+			"type":"Boolean",
+			"default":false
+		},
+		{
+			"type":"Label",
+			"title":"Photos >"
+		},
+		{
+			"type":"Label",
+			"title":" RP reward is based on items,actions,poses,circumstances visible in photo - as well as number of fans."
+		},
+		{
+			"type":"Label",
+			"title":"   -Photo RP scale"
+		},
+		{
+			"name":"conditionScoreScale",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0.01,
+			"maxvalue":0.5,
+			"default":0.2
+		},
+		{
+			"type":"Label",
+			"title":"   -Camera flash"
+		},
+		{
+			"name":"cam_Flash",
+			"title":" ",
+			"type":"Boolean",
+			"default":true
+		},
+		{
+			"type":"Label",
+			"title":"   -Use RP-Bonus and Detection to reward risky cosplay and penalize easy cosplay. Also applies to fan hype."
+		},
+		{
+			"name":"useAbstractRisk",
+			"title":"Risk -> Reward",
+			"type":"Boolean",
+			"default":true
+		},
+		{
+			"type":"Label",
+			"title":"   -Cooldown between photos"
+		},
+		{
+			"name":"photoCooldown",
+			"title":" ",
+			"type":"Float",
+			"minvalue":5,
+			"maxvalue":20,
+			"default":10
+		},
+		{
+			"type":"Label",
+			"title":"Followers >"
+		},
+		{
+			"type":"Label",
+			"title":"   -RP per fan"
+		},
+		{
+			"name":"score_fansScale",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0.0,
+			"maxvalue":0.2,
+			"default":0.05
+		},
+		{
+			"type":"Label",
+			"title":"   -Increase in fans"
+		},
+		{
+			"name":"fans_bumpScale",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0.0,
+			"maxvalue":0.3,
+			"default":0.1
+		},
+		{
+			"type":"Label",
+			"title":"   -Fan boredom (a threshold to increase hype)"
+		},
+		{
+			"name":"fans_boredom",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0.0,
+			"maxvalue":10,
+			"default":2
+		},
+		{
+			"type":"Label",
+			"title":"   -% to recieve a VIP request"
+		},
+		{
+			"name":"vip_RequestChance",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0.0,
+			"maxvalue":1,
+			"default":0.5
+		},
+		{
+			"type":"Label",
+			"title":"   -% of VIP requests in new area"
+		},
+		{
+			"name":"vip_requestAreaChance",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0.01,
+			"maxvalue":1,
+			"default":0.1
+		},
+		{
+			"type":"Label",
+			"title":"   -VIP RP scale"
+		},
+		{
+			"name":"vip_requestScore",
+			"title":" ",
+			"type":"Integer",
+			"minvalue":25,
+			"maxvalue":150,
+			"default":75
+		},
+		{
+			"type":"Label",
+			"title":"   -VIP RP multiplier per condition"
+		},
+		{
+			"name":"vip_requestPartMultiplier",
+			"title":" ",
+			"type":"Float",
+			"minvalue":1.01,
+			"maxvalue":2,
+			"default":1.3
+		},
+		{
+			"type":"Label",
+			"title":"   -VIP can request cosplay sets"
+		},
+		{
+			"name":"vip_requestAllowSets",
+			"title":" ",
+			"type":"Boolean",
+			"default":false
+		},
+		{
+			"type":"Label",
+			"title":"   -VIP request HARD MODE (experimental)"
+		},
+		{
+			"name":"vip_requestHardMode",
+			"title":" ",
+			"type":"Boolean",
+			"default":false
+		},
+		{
+			"type":"Label",
+			"title":"Anonymity >"
+		},
+		{
+			"type":"Label",
+			"title":" Revealing your uncovered face in photos attracts Hunters."
+		},
+		{
+			"type":"Label",
+			"title":"   -Min 'safe' face cover, 0 to disable"
+		},
+		{
+			"name":"anonThreshold",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0,
+			"maxvalue":2,
+			"default":0.5
+		},
+		{
+			"type":"Label",
+			"title":"   -Manaka refuses to take photo if face coverage lower than:"
+		},
+		{
+			"name":"anonRefusal",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0.0,
+			"maxvalue":1,
+			"default":0.0
+		},
+		{
+			"type":"Label",
+			"title":"Hunters >"
+		},
+		{
+			"type":"Label",
+			"title":"   -Hunter spawn chance general, scaling with Anonymity"
+		},
+		{
+			"name":"hunterChance",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0.00,
+			"maxvalue":0.5,
+			"default":0.1
+		},
+		{
+			"type":"Label",
+			"title":"   -Extra Hunter spawn chance when face revealed"
+		},
+		{
+			"name":"lowAnonTriggerChance",
+			"title":" ",
+			"type":"Float",
+			"minvalue":0.0,
+			"maxvalue":1,
+			"default":0.66
+		}
+	]
+}

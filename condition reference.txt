@@ -1,0 +1,76 @@
+
+    CoatDropped
+    CoatFrontClosed
+    CoatFrontOpen1
+    CoatFrontOpen2
+    CoatBackClosed
+    CoatBackOpen
+    Blindfolded
+    NoHandcuffs
+    HandcuffsBack
+    HandcuffsObject
+    Normal handcuffs
+    KeyedHandcuffs
+    TimedHandcuffs
+    Moving
+    Crouching
+    Peeing
+    InLight
+    Sitting
+    Dashing
+    Orgasm
+    Futanari
+    Invisible
+    InOpenToilet
+    Bukkake (Cumming on NPC)
+    NearNPC
+    Watched
+    ShowingOff
+    VibrationOff
+    VibrationLow
+    VibrationHigh
+    VibrationRandom
+    PistonOff
+    PistonLow
+    PistonMedium
+    PistonHigh
+    PistonRandom
+    IsDayTime
+    NPCArea
+    Bodypaint
+    FPCamera
+
+Can be compared to numbers:
+
+    Ecstasy
+    Detection
+    Rank
+    HeartRate
+    Stamina
+    StaminaMax
+    Moisture
+    Item_ <Itemname>
+    MissionCompleted_<MissionID>
+    DroneMissionCompleted_<DroneMissionID>
+    MissionCurrCompleted_<MissionID>
+
+Category Conditions
+(replace the <...> part with the appropriate value)
+
+    Action_ <Actionname>
+    Cosplay_<CosplayID>
+    OwnsCosplay_<CosplayID>
+    AdultToy_ <AdultToy>
+    OwnsAdultToy_ <AdultToy>
+    Item_ <Itemname>
+    MissionCompleted_<MissionID>
+    DroneMissionCompleted_<DroneMissionID>
+    MissionCurrCompleted_<MissionID>
+    SubCondition_<ConditionID>
+    Skill_ <Skillname>
+    Exposed_<Bodypart>
+        None
+        Front
+        Upper
+        HipCrouch
+        Hip

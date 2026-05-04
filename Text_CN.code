@@ -1,0 +1,248 @@
+# =========================================
+# FansChat 文本定义
+# =========================================
+
+
+Locale_CN:
+	Loc = CreateList()
+	Loc.FansChat_Button_TakePhoto = "立即拍照"
+	Loc.FansChat_Button_RequestDeny = "拒绝请求（受罚）"
+
+	Loc.FansChat_VIP_None = "VIP请求：无"
+	Loc.FansChat_VIP_Completed = "VIP委托已完成！"
+
+	Loc.FansChat_FansPrefix = "粉丝："
+	Loc.FansChat_RP_Suffix = " RP！"
+	Loc.FansChat_NewFans_Suffix = " 名新粉丝！"
+	Loc.FansChat_BestPrefix = "你的粉丝最喜欢："
+	Loc.FansChat_BestSuffix = "。"
+
+	Loc.FansChat_LowAnonDanger = "这个太冒险了……"
+	Loc.FansChat_RefuseFace = "我不能露脸……万一被人认出来怎么办？"
+	Loc.FansChat_HomeWarning = "我不应该暴露我住的地方……"
+
+	# 普通回复前半句
+	Loc.FansChat_NormalPrefix_0 = "这个有点大胆……"
+	Loc.FansChat_NormalPrefix_1 = "你是不是开始放开了？"
+	Loc.FansChat_NormalPrefix_2 = "这个角度还真是不一般"
+	Loc.FansChat_NormalPrefix_3 = "这个有点撩人"
+	Loc.FansChat_NormalPrefix_4 = "这样拍有点冒险"
+	Loc.FansChat_NormalPrefix_5 = "感觉你越来越大胆了"
+
+	# 普通回复后半句
+	Loc.FansChat_NormalSuffix_0 = "继续试试？"
+	Loc.FansChat_NormalSuffix_1 = "再来一张？"
+	Loc.FansChat_NormalSuffix_2 = "别停"
+	Loc.FansChat_NormalSuffix_3 = "这样很好"
+	Loc.FansChat_NormalSuffix_4 = "有意思"
+	Loc.FansChat_NormalSuffix_5 = "能再大胆一点吗？"
+
+	# VIP风格回复前半句
+	Loc.FansChat_VIPPrefix_0 = "你这样真的会让人着迷的"
+	Loc.FansChat_VIPPrefix_1 = "继续，别停"
+	Loc.FansChat_VIPPrefix_2 = "你知道大家都在看你吗？"
+	Loc.FansChat_VIPPrefix_3 = "你是故意撩大家的吧？"
+	Loc.FansChat_VIPPrefix_4 = "你现在的样子已经让人把持不住了"
+	Loc.FansChat_VIPPrefix_5 = "你让所有人都悬着心"
+
+	# VIP风格回复后半句
+	Loc.FansChat_VIPSuffix_0 = "继续"
+	Loc.FansChat_VIPSuffix_1 = "别停"
+	Loc.FansChat_VIPSuffix_2 = "再进一步"
+	Loc.FansChat_VIPSuffix_3 = "就保持这样"
+	Loc.FansChat_VIPSuffix_4 = "再来一次"
+	Loc.FansChat_VIPSuffix_5 = "继续让我看"
+
+	# =========================================
+	# VIP 文本定义
+	# =========================================
+
+	Loc.VIP_None = "暂无VIP请求"
+	Loc.VIP_RequestPrefix = "VIP请求："
+	Loc.VIP_AreaPrefix = "（本次区域："
+	Loc.VIP_AreaSuffix = "）"
+	Loc.VIP_CurrentAreaSuffix = "（当前区域）"
+	Loc.VIP_Unknown = "未知"
+
+	# 区域
+	Loc.Area_Convenience = "便利店"
+	Loc.Area_FashionShop = "服装店"
+	Loc.Area_Residence = "住宅区"
+	Loc.Area_ShoppingMall = "购物中心"
+	Loc.Area_StationFront = "市中心"
+	Loc.Area_Park = "公园"
+	Loc.Area_Mansion = "公寓"
+
+
+	# VIP 条件文本
+	Loc.VIP_Exposed_Front = "露出正面"
+	Loc.VIP_Exposed_Hip = "露出臀部"
+	Loc.VIP_Exposed_Upper = "露出上半身"
+	Loc.VIP_Exposed_All = "全裸露出"
+	Loc.VIP_Exposed_Any = "随意露出"
+
+	Loc.VIP_NearNPC = "靠近NPC"
+	Loc.VIP_Watched = "被注视,SubCondition_Vis_NPC"
+	Loc.VIP_ShowingOff = "展示自己,SubCondition_Vis_NPC"
+	Loc.VIP_InLight = "在灯光下"
+	Loc.VIP_InOpenToilet = "在开放厕所隔间内"
+	Loc.VIP_NPCArea = "在人群密集区域"
+
+	Loc.VIP_Crouching = "爬行"
+	Loc.VIP_Peeing = "排尿"
+	Loc.VIP_AdultToy_EyeMask = "佩戴眼罩"
+
+	Loc.VIP_HandcuffsBack = "双手铐于背后"
+	Loc.VIP_HandcuffsObject = "铐于物体上"
+	Loc.VIP_VibrationLow = "低频震动"
+	Loc.VIP_VibrationHigh = "高频震动"
+	Loc.VIP_VibrationRandom = "随机震动"
+
+	Loc.VIP_AdultToy_Vibrator = "阴道振动棒"
+	Loc.VIP_AdultToy_KuriRotor = "阴蒂振动棒"
+	Loc.VIP_AdultToy_TitRotor = "乳头振动棒"
+	Loc.VIP_AdultToy_PistonPussy = "阴道活塞"
+	Loc.VIP_AdultToy_PistonAnal = "肛门活塞"
+	Loc.VIP_AdultToy_PistonFuta = "阴茎活塞"
+
+	Loc.VIP_Cosplay_m_cosplay_general_genital_anal_plug = "肛塞"
+	Loc.VIP_Cosplay_m_cosplay_general_genital_beads = "肛珠"
+	Loc.VIP_SubCondition_Shibari = "穿戴绳缚"
+
+	Loc.VIP_Orgasm = "高潮中"
+	Loc.VIP_Action_Pinpon = "按门铃"
+	Loc.VIP_Action_UseDildoWallPussy1 = "墙壁假阳具（阴道）"
+	Loc.VIP_Action_UseDildoWallAnal1 = "墙壁假阳具（肛门）"
+	Loc.VIP_Action_UseDildoWallFella1 = "墙壁假阳具（口部）"
+	Loc.VIP_Action_UseDildoFloorPussy1 = "地板假阳具（阴道）"
+	Loc.VIP_Action_UseDildoFloorAnal1 = "地板假阳具（肛门）"
+	Loc.VIP_Action_UseBuyMachine = "使用自动贩卖机"
+	Loc.VIP_Action_SwitchV = "持振动棒遥控器"
+	Loc.VIP_Action_SwitchP = "持活塞遥控器"
+
+	Loc.VIP_Bukkake = "射在他人身上"
+	Loc.VIP_IsNightTime = "在夜间"
+	Loc.VIP_IsDayTime = "在白天"
+	Loc.VIP_Skill_Realtime = "实时进行"
+
+	Loc.VIP_Action_GanimataWalk = "内八字行走"
+	Loc.VIP_Action_AhegaoDoublePiece = "阿黑颜双手比耶"
+	Loc.VIP_Action_HipShake = "扭臀"
+	Loc.VIP_Action_GanimataHip = "内八字四肢撑地"
+	Loc.VIP_Action_KaikyakuFella = "开腿口交"
+	Loc.VIP_Action_Dogeza = "五体投地礼"
+	Loc.VIP_Action_DogTintin = "阴茎姿势"
+	Loc.VIP_Action_IBalance = "一字马平衡"
+	Loc.VIP_Action_WakimiseCrouch = "展示腋下蹲姿"
+	Loc.VIP_Action_MituasiOnani = "三点自慰"
+	Loc.VIP_Action_Tebura = "手胸罩"
+	Loc.VIP_Action_PeeKaikyaku = "开腿排尿"
+	Loc.VIP_Action_PeeDog = "狗式排尿"
+	Loc.VIP_Action_ChikubiRotate = "玩弄乳头"
+	Loc.VIP_Action_OnaniYotuashi = "趴式自慰"
+	Loc.VIP_Action_OnaniNeGanimata = "仰卧自慰"
+	Loc.VIP_Action_OnaniNormal = "自慰"
+	Loc.VIP_Action_NeKataashiage = "仰卧单腿抬起"
+	Loc.VIP_Action_OnaniArmKuri = "阴蒂玩弄"
+	Loc.VIP_Action_GanimataKoshiHeko = "顶腰"
+	Loc.VIP_Action_Haigure = "高叉姿势"
+	Loc.VIP_Action_PeeStand = "站立排尿"
+	Loc.VIP_Action_OnaniSikoru = "抚摸"
+
+	# Face
+	Loc.VIP_SubCondition_Face_Orgasm = "高潮表情"
+	Loc.VIP_SubCondition_Face_Kink = "被堵嘴"
+	Loc.VIP_SubCondition_Face_Lewd = "欲求不满表情"
+	Loc.VIP_SubCondition_Exposed_Face = "露出脸部"
+
+	#Cosplay
+	Loc.VIP_Set_Ninja = "忍者角色扮演"
+	Loc.VIP_Set_AdultSweater = "成人毛衣角色扮演"
+	Loc.VIP_Set_Jumpsuit = "连体衣角色扮演"
+	Loc.VIP_Set_Succubus = "魅魔角色扮演"
+	Loc.VIP_Set_TacticalMaid = "战术女仆角色扮演"
+
+
+	# EN Localisation note to match GUI
+	#Action_KaikyakuFella #开腿口交
+	#Action_IBalance
+	#Action_Dogeza
+	#Action_HipShake #扭臀
+	#Action_Tebura  #手胸罩
+	#Action_AhegaoDoublePiece
+	#Action_GanimataHip #内八字四肢撑地
+	#Action_DogTintin #阴茎
+	#Action_NeKataashiage #仰卧单腿抬起
+	#Action_WakimiseCrouch #展示腋下蹲姿
+	#Action_Haigure #高叉姿势
+	#Action_GanimataKoshiHeko #顶腰
+	#Action_OnaniNormal #自慰
+	#Action_MituasiOnani #三点自慰
+	#Action_OnaniNeGanimata #仰卧自慰
+	#Action_OnaniYotuashi #趴式自慰
+	#Action_ChikubiRotate #玩弄乳头
+	#Action_OnaniArmKuri #阴蒂玩弄
+	#Action_OnaniSikoru #抚摸
+	#Action_PeeKaikyaku #开腿排尿
+	#Action_PeeStand #站立排尿
+	#Action_PeeDog #狗式排尿
+
+
+	# =========================================
+	# Hunter / FansChat 文本定义
+	# =========================================
+
+	Loc.Hunter_Area_Residence = "住宅区"
+	Loc.Hunter_Area_Park = "公园"
+	Loc.Hunter_Area_StationFront = "车站地区"
+	Loc.Hunter_Area_Mansion = "公寓门前"
+	Loc.Hunter_Area_ShoppingMall = "购物中心"
+
+	# 等级 <= 1
+	Loc.Hunter_Prefix_L1_0 = "我刚才看到的……不是我的错觉吧？"
+	Loc.Hunter_Prefix_L1_1 = "你是故意这样来吸引我注意的吗？"
+	Loc.Hunter_Prefix_L1_2 = "你知道附近有人在看你吗？"
+	Loc.Hunter_Prefix_L1_3 = "你刚才那个动作，感觉像是在悄悄把我引过去。"
+	Loc.Hunter_Prefix_L1_4 = "别装作什么都没发生……你这样真的很难让人无视。"
+
+	Loc.Hunter_Suffix_L1_0 = "你在{AREA}，对吧？"
+	Loc.Hunter_Suffix_L1_1 = "我正朝着{AREA}的方向看。"
+	Loc.Hunter_Suffix_L1_2 = "在{AREA}这样，很容易让我找到你。"
+
+	# 等级 == 2
+	Loc.Hunter_Prefix_L2_0 = "我已经观察你一段时间了。"
+	Loc.Hunter_Prefix_L2_1 = "你现在的样子……看起来更像是在等人靠近。"
+	Loc.Hunter_Prefix_L2_2 = "你是在等人忍不住走过来吗？"
+	Loc.Hunter_Prefix_L2_3 = "你越这样，我就越想直接过来找你。"
+	Loc.Hunter_Prefix_L2_4 = "你现在的样子，让任何人都很难移开视线。"
+
+	Loc.Hunter_Suffix_L2_0 = "你现在在{AREA}。"
+	Loc.Hunter_Suffix_L2_1 = "别动，我快到{AREA}了。"
+	Loc.Hunter_Suffix_L2_2 = "在{AREA}……你真的很显眼。"
+
+	# 等级 >= 3
+	Loc.Hunter_Prefix_L3_0 = "我已经开始朝你走去了。"
+	Loc.Hunter_Prefix_L3_1 = "你是在……邀请我直接过去吗？"
+	Loc.Hunter_Prefix_L3_2 = "继续，我想亲眼看看你现在的样子。"
+	Loc.Hunter_Prefix_L3_3 = "别到处跑，否则我只能一路追过去。"
+	Loc.Hunter_Prefix_L3_4 = "你再这样下去，我很快就会站在你面前了。"
+
+	Loc.Hunter_Suffix_L3_0 = "{AREA}……我慢慢过去。"
+	Loc.Hunter_Suffix_L3_1 = "在{AREA}等着，别停。"
+	Loc.Hunter_Suffix_L3_2 = "别动，在{AREA}保持这样，方便我找到你。"
+
+	# 路线消息
+	Loc.Hunter_Route_0 = "我现在就来找你。"
+	Loc.Hunter_Route_1 = "别动，我马上就到。"
+	Loc.Hunter_Route_2 = "就在那里等着，我已经出发了。"
+	Loc.Hunter_Route_3 = "你跑不掉的，我来了。"
+
+	# 可选
+	Loc.Hunter_Lost = "……我找不到你。"
+	Loc.Hunter_ArrivedNear = "我已经在{AREA}附近了。"
+
+	Output:
+		if Global("FC.Tx") == null
+			Global("FC.Tx", Loc)
+		#DumpVariable( Loc )
+		_result = Loc

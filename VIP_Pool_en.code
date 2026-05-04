@@ -1,0 +1,893 @@
+# =========================================
+# VIP 随机条件系统（动态RP显示版）
+# =========================================
+
+# Local Var
+vipCondObj = CreateCondition("[Exposed_All,Exposed_None]")
+mp_focus = CreateMissionPanel()
+mp_focus.SetText("VIP Camera Focus")
+mp_focus.SetVisible(false)
+mp_focus.SetGaugeProgress(0)
+focusTimer=0
+
+# -----------------------------------------
+# VIP Request Condition Focus Meter!
+# -----------------------------------------
+vip_focus_meter:
+	if _save.vip_request_active && !conNone.Check()
+		if focusTimer == null
+			focusTimer=0
+
+		focusTimer = focusTimer + _timediff
+		if focusTimer > 0.01
+			focusTimer = 0
+			if vipCondObj != null && vipCondObj.Check() && _save.vip_request != null && _save.vip_request!=""
+				cVis = Min(1, ConditionVisibility(_save.vip_request) * 1.5 )
+				mp_focus.SetVisible(true)
+				mp_focus.SetGaugeVisible(true)
+				mp_focus.SetText("VIP Camera Focus")
+				gauge = mp_focus.GetGaugeProgress()
+				gauge = lerp(gauge,Max(0,cVis),0.3)
+				mp_focus.SetGaugeProgress( Max(0,cVis) )
+				if debugInput.IsPressed()
+			else
+				if !vipCondObj.Check()
+					mp_focus.SetVisible(false)
+
+	if conNone.Check()
+		mp_focus.SetVisible(false)
+
+if vipFocussing == null
+	mp_focus = CreateMissionPanel()
+	mp_focus.SetGaugeVisible(true)
+	mp_focus.SetVisible(false)
+	mp_focus.SetGaugeProgress(0)
+	vipFocussing = CreateListener("vip_focus_meter")
+
+# -----------------------------------------
+# 文本函数
+# -----------------------------------------
+get_area_text:
+	if Tx == null
+		Tx = Global("FC.Tx")
+
+	if area == "Convenience"
+		_result = Tx.Area_Convenience
+	elseif area == "FashionShop"
+		_result = Tx.Area_FashionShop
+	elseif area == "Residence"
+		_result = Tx.Area_Residence
+	elseif area == "ShoppingMall"
+		_result = Tx.Area_ShoppingMall
+	elseif area == "StationFront"
+		_result = Tx.Area_StationFront
+	elseif area == "Park"
+		_result = Tx.Area_Park
+	elseif area == "Mansion"
+		_result = Tx.Area_Mansion
+	else
+		_result = area
+
+get_vip_part_text:
+	if Tx == null
+		Tx = Global("FC.Tx")
+
+	# Expose Pool
+	if part == "Exposed_Front"
+		_result = Tx.VIP_Exposed_Front
+	elseif part == "Exposed_Hip"
+		_result = Tx.VIP_Exposed_Hip
+	elseif part == "Exposed_Upper"
+		_result = Tx.VIP_Exposed_Upper
+	elseif part == "(Exposed_All,SubCondition_Vis_Naked)"
+		_result = Tx.VIP_Exposed_All
+	elseif part == "!Exposed_None"
+		_result = Tx.VIP_Exposed_Any
+
+	# Risk Pool
+	elseif part == "NearNPC"
+		_result = Tx.VIP_NearNPC
+	elseif part == "Watched,SubCondition_Vis_NPC"
+		_result = Tx.VIP_Watched
+	elseif part == "ShowingOff,SubCondition_Vis_NPC"
+		_result = Tx.VIP_ShowingOff
+	elseif part == "NPCArea"
+		_result = Tx.VIP_NPCArea
+	elseif part == "Peeing"
+		_result = Tx.VIP_Peeing
+	elseif part == "Orgasm"
+		_result = Tx.VIP_Orgasm
+	elseif part == "VibrationLow"
+		_result = Tx.VIP_VibrationLow
+	elseif part == "VibrationHigh"
+		_result = Tx.VIP_VibrationHigh
+	elseif part == "!Skill_Slow,!Skill_TimeStop"
+		_result = Tx.VIP_Skill_Realtime
+
+	#Gear Pool
+	elseif part == "AdultToy_EyeMask,SubCondition_Vis_Face,SubCondition_Vis_High"
+		_result = Tx.VIP_AdultToy_EyeMask
+	elseif part == "AdultToy_Vibrator,SubCondition_Vis_Groin"
+		_result = Tx.VIP_AdultToy_Vibrator
+	elseif part == "AdultToy_KuriRotor,SubCondition_Vis_Groin"
+		_result = Tx.VIP_AdultToy_KuriRotor
+	elseif part == "AdultToy_TitRotor,SubCondition_Vis_Breast"
+		_result = Tx.VIP_AdultToy_TitRotor
+	elseif part == "AdultToy_PistonPussy,(SubCondition_Vis_Groin,SubCondition_Vis_High)"
+		_result = Tx.VIP_AdultToy_PistonPussy
+	elseif part == "AdultToy_PistonAnal,(SubCondition_Vis_Groin,SubCondition_Vis_High)"
+		_result = Tx.VIP_AdultToy_PistonAnal
+	elseif part == "AdultToy_PistonFuta,(SubCondition_Vis_Groin,SubCondition_Vis_High)"
+		_result = Tx.VIP_AdultToy_PistonFuta
+	elseif part == "Cosplay_m_cosplay_general_genital_anal_plug,SubCondition_Vis_Groin"
+		_result = Tx.VIP_Cosplay_m_cosplay_general_genital_anal_plug
+	elseif part == "Cosplay_m_cosplay_general_genital_beads,(SubCondition_Vis_Groin,SubCondition_Vis_High)"
+		_result = Tx.VIP_Cosplay_m_cosplay_general_genital_beads
+	elseif part == "SubCondition_Shibari,(SubCondition_Vis_Breast,SubCondition_Vis_Groin)"
+		_result = Tx.VIP_SubCondition_Shibari
+
+	#Cosplay Set
+	elseif part == "SubCondition_Set_Ninja" 
+		_result = Tx.VIP_Set_Ninja
+	elseif part == "SubCondition_Set_AdultSweater" 
+		_result = Tx.VIP_Set_AdultSweater
+	elseif part == "SubCondition_Set_Jumpsuit" 
+		_result = Tx.VIP_Set_Jumpsuit
+	elseif part == "SubCondition_Set_Succubus" 
+		_result = Tx.VIP_Set_Succubus
+	elseif part == "SubCondition_Set_TacticalMaid" 
+		_result = Tx.VIP_Set_TacticalMaid
+
+	#Pose Pool / Action Pool "SubCondition_Action_SwitchV"
+	elseif part == "SubCondition_Action_SwitchV" 
+		_result = Tx.VIP_Action_SwitchV
+	elseif part == "SubCondition_Action_SwitchP" 
+		_result = Tx.VIP_Action_SwitchP
+	elseif part == "Action_UseBuyMachine" 
+		_result = Tx.VIP_Action_UseBuyMachine
+	elseif part == "Action_Pinpon" 
+		_result = Tx.VIP_Action_Pinpon
+	elseif part == "HandcuffsBack"
+		_result = Tx.VIP_HandcuffsBack
+	elseif part == "HandcuffsObject" ## sometimes, this is actually impossible to complete when combined with other conditions. Temporary disable until filtering added
+		_result = Tx.VIP_HandcuffsObject
+	elseif part == "Crouching"
+		_result = Tx.VIP_Crouching
+	elseif part == "Action_UseDildoWallPussy1"
+		_result = Tx.VIP_Action_UseDildoWallPussy1
+	elseif part == "Action_UseDildoWallAnal1"
+		_result = Tx.VIP_Action_UseDildoWallAnal1
+	elseif part == "Action_UseDildoWallFella1"
+		_result = Tx.VIP_Action_UseDildoWallFella1
+	elseif part == "Action_UseDildoFloorPussy1"
+		_result = Tx.VIP_Action_UseDildoFloorPussy1
+	elseif part == "Action_UseDildoFloorAnal1"
+		_result = Tx.VIP_Action_UseDildoFloorAnal1
+	elseif part == "Action_GanimataWalk"
+		_result = Tx.VIP_Action_GanimataWalk
+	elseif part == "Action_AhegaoDoublePiece"
+		_result = Tx.VIP_Action_AhegaoDoublePiece
+	elseif part == "Action_HipShake"
+		_result = Tx.VIP_Action_HipShake
+	elseif part == "Action_GanimataHip"
+		_result = Tx.VIP_Action_GanimataHip
+	elseif part == "Action_KaikyakuFella"
+		_result = Tx.VIP_Action_KaikyakuFella
+	elseif part == "Action_Dogeza"
+		_result = Tx.VIP_Action_Dogeza
+	elseif part == "Action_DogTintin"
+		_result = Tx.VIP_Action_DogTintin
+	elseif part == "Action_IBalance"
+		_result = Tx.VIP_Action_IBalance
+	elseif part == "Action_WakimiseCrouch"
+		_result = Tx.VIP_Action_WakimiseCrouch
+	elseif part == "Action_MituasiOnani"
+		_result = Tx.VIP_Action_MituasiOnani
+	elseif part == "Action_Tebura"
+		_result = Tx.VIP_Action_Tebura
+	elseif part == "Action_PeeKaikyaku"
+		_result = Tx.VIP_Action_PeeKaikyaku
+	elseif part == "Action_PeeDog"
+		_result = Tx.VIP_Action_PeeDog
+	elseif part == "Action_ChikubiRotate"
+		_result = Tx.VIP_Action_ChikubiRotate
+	elseif part == "Action_OnaniYotuashi"
+		_result = Tx.VIP_Action_OnaniYotuashi
+	elseif part == "Action_OnaniNeGanimata"
+		_result = Tx.VIP_Action_OnaniNeGanimata
+	elseif part == "Action_OnaniNormal"
+		_result = Tx.VIP_Action_OnaniNormal
+	elseif part == "Action_NeKataashiage"
+		_result = Tx.VIP_Action_NeKataashiage
+	elseif part == "Action_OnaniArmKuri"
+		_result = Tx.VIP_Action_OnaniArmKuri
+	elseif part == "Action_GanimataKoshiHeko"
+		_result = Tx.VIP_Action_GanimataKoshiHeko
+	elseif part == "Action_Haigure"
+		_result = Tx.VIP_Action_Haigure
+	elseif part == "Action_PeeStand"
+		_result = Tx.VIP_Action_PeeStand
+	elseif part == "Action_OnaniSikoru"
+		_result = Tx.VIP_Action_OnaniSikoru
+
+	# Face
+	elseif part == "SubCondition_Face_Orgasm"
+		_result = Tx.VIP_SubCondition_Face_Orgasm
+	elseif part == "SubCondition_Face_Kink"
+		_result = Tx.VIP_SubCondition_Face_Kink
+	elseif part == "SubCondition_Face_Lewd"
+		_result = Tx.VIP_SubCondition_Face_Lewd
+	elseif part == "SubCondition_Exposed_Face"
+		_result = Tx.VIP_SubCondition_Exposed_Face
+
+	# Conflicting Pool that require special filter
+	elseif part == "InOpenToilet" ## sometimes, this is actually impossible to complete when combined with other conditions. Temporary disable until filtering added
+		_result = Tx.VIP_InOpenToilet
+	elseif part == "(InLight,IsDayTime)"
+		_result = Tx.VIP_InLight
+
+	# Special logic
+	elseif part == "Bukkake" #note: bukkake condition doesn't seem to work in CustomMissionsv2
+		_result = Tx.VIP_Bukkake
+	elseif part == "IsDayTime" 
+		_result = Tx.VIP_IsDayTime
+	elseif part == "!IsDayTime" 
+		_result = Tx.VIP_IsNightTime
+	else
+		# _result = Tx.VIP_Unknown
+		_result = part
+	#DumpVariable(_result)
+
+# -----------------------------------------
+# 初始化 / 修复持久化数据
+# -----------------------------------------
+init_vip_system:
+	if Tx == null
+		Tx = Global("FC.Tx")
+
+	if _save.vip_request_reward == null
+		_save.vip_request_reward = 0
+	if _save.vip_request_active == null
+		_save.vip_request_active = false
+	if _save.vip_request_text == null
+		_save.vip_request_text = ""
+
+	if _save.vip_request_area == null
+		_save.vip_request_area = ""
+	if _save.vip_request_area_text == null
+		_save.vip_request_area_text = ""
+
+	if _save.vip_request != null
+		if GetType(_save.vip_request) != "String"
+			_save.vip_request = null
+			_save.vip_request_text = ""
+			_save.vip_request_active = false
+			_save.vip_request_reward = 0
+			_save.vip_request_area = ""
+			_save.vip_request_area_text = ""
+		elseif _save.vip_request == "" || _save.vip_request == "null"
+			_save.vip_request = null
+			_save.vip_request_text = ""
+			_save.vip_request_active = false
+			_save.vip_request_reward = 0
+			_save.vip_request_area = ""
+			_save.vip_request_area_text = ""
+		else
+			vipCondObj = CreateCondition(_save.vip_request)
+
+	if _save.vip_request_active
+		if _save.vip_request == null
+			_save.vip_request_active = false
+			_save.vip_request_text = ""
+			_save.vip_request_reward = 0
+			_save.vip_request_area = ""
+			_save.vip_request_area_text = ""
+		elseif GetType(_save.vip_request) != "String"
+			_save.vip_request = null
+			_save.vip_request_active = false
+			_save.vip_request_text = ""
+			_save.vip_request_reward = 0
+			_save.vip_request_area = ""
+			_save.vip_request_area_text = ""
+		elseif _save.vip_request == "" || _save.vip_request == "null"
+			_save.vip_request = null
+			_save.vip_request_active = false
+			_save.vip_request_text = ""
+			_save.vip_request_reward = 0
+			_save.vip_request_area = ""
+			_save.vip_request_area_text = ""
+		else
+			vipCondObj = CreateCondition(_save.vip_request)
+
+	if _save.vip_request_reward == null
+		_save.vip_request_reward = 0
+
+	if _save.vip_request_text == null || _save.vip_request_text == "null"
+		_save.vip_request_text = ""
+
+	if _save.vip_request_area == null || _save.vip_request_area == "null"
+		_save.vip_request_area = ""
+
+	if _save.vip_request_area_text == null || _save.vip_request_area_text == "null"
+		_save.vip_request_area_text = ""
+
+
+# -----------------------------------------
+# 清理当前VIP请求是否合法
+# -----------------------------------------
+sanitize_vip_request:
+	if Tx == null
+		Tx = Global("FC.Tx")
+	init_vip_system()
+
+	if _save.vip_request == null
+		_result = false
+		return
+
+	if GetType(_save.vip_request) != "String"
+		clear_vip_request()
+		_result = false
+		return
+
+	if _save.vip_request == "" || _save.vip_request == "null"
+		clear_vip_request()
+		_result = false
+		return
+
+	_result = true
+
+
+# -----------------------------------------
+# 对外：按需刷新VIP请求
+# -----------------------------------------
+vipRequestChance = _settings.vip_RequestChance
+
+refresh_vip_request:
+	if Tx == null
+		Tx = Global("FC.Tx")
+	init_vip_system()
+
+	#Log("FC.VIP: Refresh: enter")
+	#Log(_save.vip_request_active)
+	#Log(_save.vip_request)
+
+	if has_valid_vip_request()
+		#Log("FC.VIP: Refresh: keeping current request")
+		#Log(_save.vip_request)
+		_result = false
+
+	elseif Random() >= vipRequestChance
+		#Log("FC.VIP: Refresh: rolling VIP chance")
+
+		_save.vip_request = null
+		_save.vip_request_text = Tx.VIP_None
+		_save.vip_request_reward = 0
+		_save.vip_request_area = ""
+		_save.vip_request_area_text = ""
+		_save.vip_request_active = false
+		vipCondObj = CreateCondition("[Exposed_All,Exposed_None]")
+
+		#Log("FC.VIP: Refresh: no request rolled")
+		_result = false
+
+	else
+		#Log("FC.VIP: Refresh: rolling VIP chance")
+		#Log("FC.VIP: Refresh: roll success")
+
+		generate_vip_request()
+
+		#Log("FC.VIP: Refresh: generation complete")
+		#Log(_save.vip_request)
+		#Log(_save.vip_request_active)
+
+		if _save.vip_request_active && _save.vip_request != null && _save.vip_request != "" && _save.vip_request != "null"
+			#Log("FC.VIP: Refresh: new request generated")
+			#Log(_save.vip_request)
+			vipCondObj = CreateCondition(_save.vip_request)
+			_result = true
+		else
+			#Log("FC.VIP: Refresh: generation failed, using default")
+			_save.vip_request = "Exposed_Front"
+			_save.vip_request_text = Tx.VIP_Exposed_Front
+			_save.vip_request_reward = vip_requestScore
+			_save.vip_request_area = "Residence"
+			_save.vip_request_area_text = Tx.Area_Residence
+			_save.vip_request_active = true
+			vipCondObj = CreateCondition(_save.vip_request)
+			_result = true
+
+
+has_valid_vip_request:
+	if !_save.vip_request_active
+		_result = false
+	elseif _save.vip_request == null
+		_result = false
+	elseif _save.vip_request == ""
+		_result = false
+	elseif _save.vip_request == "null"
+		_result = false
+	else
+		_result = true
+
+
+# -----------------------------------------
+# 生成新的VIP请求
+# -----------------------------------------
+generate_vip_request:
+	if Tx == null
+		Tx = Global("FC.Tx")
+	init_vip_system()
+
+	expose_pool = CreateList("Exposed_Front")
+	risk_pool = CreateList("NearNPC","ShowingOff","NPCArea","Peeing")
+	gear_pool = CreateList("Cosplay_m_cosplay_general_genital_anal_plug,SubCondition_Vis_Groin")
+	pose_pool = CreateList("Crouching","Action_PeeKaikyaku","Action_IBalance","Action_Dogeza","Action_OnaniNormal","Action_KaikyakuFella")
+	area_pool = CreateList("Residence")
+	face_pool = CreateList("SubCondition_Face_Lewd","SubCondition_Face_Orgasm","AdultToy_EyeMask,SubCondition_Vis_Face,SubCondition_Vis_High")
+	cosplayset_pool = CreateList("SubCondition_Set_Succubus","SubCondition_Set_TacticalMaid")# "SubCondition_Set_AdultSweater","SubCondition_Set_Jumpsuit"
+	conflicting_pool = CreateList("Futanari") #IsDayTime, InOpenToilet and other conflicts added later in Part logic
+
+	if _state.Futanari
+		#risk_pool.Insert("Bukkake") #doesnt work?
+		gear_pool.Insert("AdultToy_PistonFuta,(SubCondition_Vis_Groin,SubCondition_Vis_High)")
+		pose_pool.Insert("Action_OnaniSikoru")
+
+	if _state.Rank > 0 #Pervert
+		expose_pool.Insert("Exposed_Hip")
+		gear_pool.Insert("AdultToy_Vibrator,SubCondition_Vis_Groin","AdultToy_KuriRotor,SubCondition_Vis_Groin","AdultToy_TitRotor,SubCondition_Vis_Breast")
+		pose_pool.Insert("SubCondition_Action_SwitchV","Action_UseDildoWallPussy1","Action_UseDildoWallAnal1","Action_UseDildoWallFella1","Action_UseDildoFloorPussy1","Action_UseDildoFloorAnal1")
+		pose_pool.Insert("Action_HipShake","Action_Tebura")
+		area_pool.Insert("Park")
+	if _state.Rank > 1 #Kinky
+		area_pool.Insert("Convenience")
+		pose_pool.Insert("HandcuffsBack","HandcuffsObject","Action_AhegaoDoublePiece","Action_GanimataHip","Action_GanimataWalk")
+		risk_pool.Insert("Orgasm")
+	if _state.Rank > 2 #Nympho
+		expose_pool.Insert("Exposed_Upper")
+		gear_pool.Insert("Cosplay_m_cosplay_general_genital_beads,(SubCondition_Vis_Groin,SubCondition_Vis_High)")
+		area_pool.Insert("Mansion","StationFront")
+		pose_pool.Insert("Action_DogTintin","Action_NeKataashiage","Action_OnaniArmKuri","Action_OnaniNeGanimata","Action_OnaniYotuashi","Action_ChikubiRotate","Action_MituasiOnani")
+		cosplayset_pool.Insert("SubCondition_Set_Ninja")
+		# also has by now:
+		# collar sex use, condom, pervert sign, nipple pasties, cross nipple piercings, nippple piercings, slingshot bikini, rubber suit, open-cup bra and open crotch bikini, 
+	if _state.Rank > 3 #Stranger
+		area_pool.Insert("ShoppingMall","FashionShop")
+		gear_pool.Insert("SubCondition_Shibari,(SubCondition_Vis_Breast,SubCondition_Vis_Groin)")
+		pose_pool.Insert("Action_PeeDog","Action_GanimataKoshiHeko","Action_Haigure","Action_WakimiseCrouch")
+	if _state.Rank > 4 #Flasher
+		expose_pool.Insert("(Exposed_All,SubCondition_Vis_Naked)")
+		pose_pool.Insert("SubCondition_Action_SwitchP")
+		gear_pool.Insert("AdultToy_PistonPussy,(SubCondition_Vis_Groin,SubCondition_Vis_High)","AdultToy_PistonAnal,(SubCondition_Vis_Groin,SubCondition_Vis_High)")
+	if _state.Rank > 5 #Flash Fiend
+		risk_pool.Insert("!Skill_Slow,!Skill_TimeStop")
+		face_pool.Insert("SubCondition_Face_Kink")
+	if _state.Rank > 6 #Apex Flasher
+		face_pool.Insert("SubCondition_Exposed_Face")
+		pose_pool.Insert("TimedHandcuffs,HandcuffsBack","TimedHandcuffs,HandcuffsObject","Dashing")
+		risk_pool.Insert("Stamina<0.1","Detection>1","SubCondition_Risk_Panting")
+
+	# Hard Mode!
+	risk_poolHard1 = CreateList("SubCondition_Vis_NPC","Detection>1","Orgasm","NearNPC","SubCondition_Risk_Panting")
+	risk_poolHard2 = CreateList("ShowingOff","Peeing","!Skill_Slow,!Skill_TimeStop")
+	if _settings.vip_requestHardMode && _state.Rank > 6
+		cosplayset_pool = CreateList("SubCondition_Set_Cowgirl","SubCondition_Set_Bunny","SubCondition_Set_Pony","SubCondition_Set_Sister","SubCondition_Set_WildBeast","SubCondition_Set_Guard")
+		pose_pool = CreateList("Dashing","HandcuffsBack","HandcuffsObject","TimedHandcuffs,HandcuffsBack","TimedHandcuffs,HandcuffsObject","SubCondition_Action_SwitchV","SubCondition_Action_SwitchP","Action_UseDildoWallPussy1","Action_UseDildoWallAnal1","Action_UseDildoWallFella1","Action_UseDildoFloorPussy1","Action_UseDildoFloorAnal1")
+		pose_pool.Insert("Action_OnaniArmKuri","Action_OnaniNeGanimata","Action_OnaniYotuashi","Action_MituasiOnani","Action_ChikubiRotate","Action_OnaniSikoru")
+		pose_pool.Insert("SubCondition_Walking_Pose")
+
+	parts = CreateList()
+
+	current_area = null
+	if _state != null && _state.Position != null
+		current_area = _state.Position.stage
+
+	if Random() > _settings.vip_requestAreaChance && current_area != "Apart"
+		selected_area = current_area
+	else
+		#area_pool = CreateList("Residence","Park","StationFront","ShoppingMall")
+		area_idx = RandomInt(0, area_pool.Count())
+		selected_area = area_pool[area_idx]
+
+	if selected_area == null || selected_area == "" || selected_area == "null" || _state.Rank < GetStageRankLimit(selected_area)
+		selected_area = "Residence"
+
+	r = Random()
+	if r < _settings.vip_requestAreaChance
+		other_areas = CreateList()
+		i = 0
+		while i < area_pool.Count()
+			a = area_pool[i]
+			if a != selected_area
+				other_areas.Insert(a)
+			i += 1
+
+		if other_areas.Count() > 0
+			idx = RandomInt(0, other_areas.Count())
+			selected_area = other_areas[idx]
+
+	#Log("FC.VIP: Current area = " + current_area)
+	#Log("FC.VIP: Selected area = " + selected_area)
+
+	is_same_area = false
+	if current_area != null && selected_area == current_area
+		is_same_area = true
+
+	selected_area_text = get_area_text(area=selected_area)
+
+	if is_same_area
+		selected_area_text = selected_area_text
+
+	cond = null
+	if expose_pool != null && expose_pool.Count() > 0
+		idx = RandomInt(0, expose_pool.Count())
+		cond = expose_pool[idx]
+		if _settings.vip_requestHardMode
+
+
+	#Log("FC.VIP: Expose condition = " + cond)
+
+	if cond != null && cond != "" && cond != "null"
+		parts.Insert(cond)
+
+	if parts.Count() <= 0
+		parts.Insert("Exposed_Front")
+
+
+	r = Random(0,_state.Rank)
+	if r > 6
+		extra_count = 4
+	if r > 4
+		extra_count = 3
+	elseif r > 2
+		extra_count = 2
+	else
+		extra_count = 1
+
+	if _settings.vip_requestHardMode
+		extra_count = 5
+		parts.Insert("NPCArea")
+		if selected_area == "Residence" || selected_area == "StationFront" || selected_area == "Park"
+			risk_poolHard1.Insert("(InLight,IsDayTime)")
+
+	category_pool = CreateList("Risk","Gear","Pose","Face","Conflicting")
+	if _settings.vip_requestAllowSets && _state.Rank > 2
+		category_pool.Insert("CosplaySet")
+
+	extra_picks = 0
+	pickedPose = false
+	pickedRisk = 0
+	pickedRiskHard1=false
+	pickedRiskHard2=false
+	pickedCosplaySet = false
+	pickedConflicting = false
+	pickedGear = false
+	pickedFace = false
+	while extra_picks < extra_count
+		if category_pool.Count() == 0
+			extra_picks = extra_count
+		else
+			cat_idx = RandomInt(0, category_pool.Count())
+			cat_name = category_pool[cat_idx]
+
+			#Log("FC.VIP: Category = " + cat_name)
+
+			category_pool.Remove(index=cat_idx)
+
+			pool = null
+			if cat_name == "Risk" && pickedRisk<=1
+				if _settings.vip_requestHardMode && !pickedRiskHard1
+					pool=risk_poolHard1
+					pickedRiskHard1=true
+				elseif _settings.vip_requestHardMode && !pickedRiskHard2
+					pool=risk_poolHard2
+					pickedRiskHard2=true
+				else 
+					if selected_area == "Park" || selected_area == "ShoppingMall"
+						risk_pool.Insert("Sitting")
+					pool = risk_pool
+				pickedRisk +=1
+			elseif cat_name == "Pose" && !pickedPose
+				pickedPose = true
+				pool = pose_pool
+				if selected_area == "Residence" || selected_area == "Mansion" 
+					pool.Insert("Action_Pinpon")
+				if selected_area == "Residence" || selected_area == "StationFront"  || selected_area == "Park"
+					pool.Insert("Action_UseBuyMachine") #note: BuyMachine in park conflicts with InOpenToilet, so it is omitted
+			elseif cat_name == "CosplaySet" && !pickedCosplaySet && _state.Rank > 2
+				pool = cosplayset_pool
+				pickedCosplaySet = true
+			elseif cat_name == "Face"
+				pool = face_pool
+				pickedFace = true
+			elseif cat_name == "Conflicting" && !pickedConflicting 
+				pool = conflicting_pool
+				pickedConflicting = true
+				if selected_area == "Park"
+					pool.Insert("InOpenToilet")
+			else
+				if !pickedFace
+					pool = face_pool
+					pickedFace = true
+				else
+					pool = gear_pool # we allow multiple gear as fallback, but prefer other categories first
+
+			cond = null
+			if pool != null
+				if pool.Count() > 0
+					idx = RandomInt(0, pool.Count())
+					cond = pool[idx]
+
+			#Log("FC.VIP: Selected condition = " + cond)
+
+			if cond != null && cond != "" && cond != "null"
+				parts.Insert(cond)
+				extra_picks = extra_picks + 1
+
+	#Log("FC.VIP: === VIP DEBUG START ===")
+	#Log("FC.VIP: Condition count = " + parts.Count())
+
+	i = 0
+	while i < parts.Count()
+		part = parts[i]
+		if part == null
+			#Log("FC.VIP: Condition[" + i + "] = NULL")
+		elseif part == ""
+			#Log("FC.VIP: Condition[" + i + "] = EMPTY")
+		elseif part == "null"
+			#Log("FC.VIP: Condition[" + i + "] = STRING_NULL")
+		else
+			#Log("FC.VIP: Condition[" + i + "] = " + part)
+		i += 1
+
+	#Log("FC.VIP: === VIP DEBUG END ===")
+
+	valid_parts = CreateList()
+	i = 0
+	while i < parts.Count()
+		part = parts[i]
+		if part != null && part != "" && part != "null"
+			valid_parts.Insert(part)
+		i += 1
+
+	if valid_parts.Count() <= 0
+		valid_parts.Insert("Exposed_Front")
+
+	reward = 0
+	part_count = valid_parts.Count()
+
+	if part_count <= 1
+		reward = vip_requestScore * _settings.vip_requestPartMultiplier
+	elseif part_count == 2
+		reward = vip_requestScore * (_settings.vip_requestPartMultiplier**2)
+	elseif part_count == 3
+		reward = vip_requestScore * (_settings.vip_requestPartMultiplier**3)
+	else
+		reward = vip_requestScore * (_settings.vip_requestPartMultiplier**4) 
+
+	readable_text = ""
+
+	i = 0
+	while i < valid_parts.Count()
+		part = valid_parts[i]
+
+		if part == "HandcuffsBack" || part == "HandcuffsObject" || part == "ShowingOff" 
+			reward = reward + 100
+		elseif part == "NearNPC" || part == "(InLight,IsDayTime)" || part == "VibrationHigh" || part == "AdultToy_EyeMask,SubCondition_Vis_Face,SubCondition_Vis_High"
+			reward = reward + 50
+		elseif part == "SubCondition_Shibari,(SubCondition_Vis_Breast,SubCondition_Vis_Groin)" || part == "Action_GanimataWalk" || part == "Action_AhegaoDoublePiece" || part == "Action_HipShake" || part == "Action_GanimataHip" || part == "Action_KaikyakuFella" || part == "Action_Dogeza" || part == "Action_DogTintin" || part == "Action_IBalance" || part == "Action_WakimiseCrouch" || part == "Action_MituasiOnani" || part == "Action_Tebura" || part == "Action_PeeKaikyaku" || part == "Action_PeeDog" || part == "Action_ChikubiRotate" || part == "Action_OnaniYotuashi" || part == "Action_OnaniNeGanimata" || part == "Action_OnaniNormal" || part == "Action_NeKataashiage" || part == "Action_OnaniArmKuri" || part == "Action_GanimataKoshiHeko" || part == "Action_Haigure" || part == "Action_PeeStand"
+			reward = reward + 50
+		elseif part == "SubCondition_Exposed_Face" || part == "IsDayTime" #Face Reveal - no anonymity!
+			reward = reward + 150
+		elseif Find("tion_Face", part)  >= 0 # 
+			reward = reward + 50
+		elseif Find("Action_Use", part) >= 0  # Action_Use, includes all dildo
+			reward = reward + 100
+		elseif Find("AdultToy_", part) >= 0 # Pistons, vibrators etc not already found
+			reward = reward + 25
+		elseif Find("general_genital", part) >= 0 # Cosplay genitals: anal plugs etc
+			reward = reward + 25
+		elseif Find("_Set_", part)  >= 0 # Cosplay Sets
+			reward = reward + 50
+		elseif Find("Vibration", part) >= 0
+			reward = reward + 25
+
+
+		part_text = get_vip_part_text(part=part)
+
+		#DumpVariable(part_text,4)
+
+		if part_text != ""
+			if readable_text == ""
+				readable_text = part_text
+			else
+				readable_text = readable_text + " / " + part_text
+
+		i += 1
+
+	if readable_text == ""
+		readable_text = Tx.VIP_Exposed_Front
+
+	if valid_parts.Count() == 1
+		vip_string = valid_parts[0]
+	else
+		vip_string = "["
+		i = 0
+		while i < valid_parts.Count()
+			if i > 0
+				vip_string = vip_string + ","
+			vip_string = vip_string + valid_parts[i]
+			i += 1
+		vip_string = vip_string + "]"
+
+	if vip_string == null
+		vip_string = "Exposed_Front"
+	if vip_string == ""
+		vip_string = "Exposed_Front"
+	if vip_string == "null"
+		vip_string = "Exposed_Front"
+	if GetType(vip_string) != "String"
+		vip_string = "Exposed_Front"
+
+	if reward == null
+		reward = _settings.vip_requestScore
+
+	#Log("FC.VIP: Generated VIP condition = " + vip_string)
+	#Log("FC.VIP: Generated VIP text = " + readable_text)
+	#Log("FC.VIP: Generated VIP reward = " + reward)
+	#Log("FC.VIP: Final VIP condition = " + vip_string)
+	#Log("FC.VIP: Final text = " + readable_text)
+	#Log("FC.VIP: Final reward = " + reward)
+
+	vipCondObj = CreateCondition(vip_string)
+	_save.vip_request = vip_string
+	_save.vip_request_text = readable_text
+	_save.vip_request_reward = Min( _settings.vip_requestScore*(1+_state.Rank),  Ceil(reward * vipRewardScale) )
+	_save.vip_request_active = true
+	_save.vip_request_area = selected_area
+	_save.vip_request_area_text = selected_area_text
+	_result = vip_string
+
+
+# -----------------------------------------
+# 清除VIP
+# -----------------------------------------
+clear_vip_request:
+	_save.vip_request = null
+	_save.vip_request_text = ""
+	_save.vip_request_reward = 0
+	_save.vip_request_active = false
+	_save.vip_request_area = ""
+	_save.vip_request_area_text = ""
+	vipCondObj = CreateCondition("[Exposed_All,Exposed_None]")
+
+# -----------------------------------------
+# 获取VIP文本（带区域）
+# -----------------------------------------
+get_vip_request_text:
+	if Tx == null
+		Tx = Global("FC.Tx")
+	init_vip_system()
+
+	if !has_valid_vip_request()
+		if _save.vip_request_text != null && _save.vip_request_text != ""
+			_result = Tx.VIP_RequestPrefix + _save.vip_request_text
+		else
+			_result = Tx.VIP_RequestPrefix + Tx.VIP_None
+		return
+
+	display_text = _save.vip_request_text
+	if display_text == null || display_text == "" || display_text == "null"
+		display_text = _save.vip_request
+
+	area_text = _save.vip_request_area_text
+
+	#Log("FC.VIP: Tx.VIP_RequestPrefix "+Tx.VIP_RequestPrefix)
+	#Log("FC.VIP: display_text "+display_text)
+	#Log("FC.VIP: Tx.VIP_AreaPrefix "+Tx.VIP_AreaPrefix)
+	#Log("FC.VIP: Tx.VIP_AreaPrefix "+Tx.VIP_AreaPrefix)
+	#Log("FC.VIP: area_text "+area_text)
+	#Log("FC.VIP: Tx.VIP_AreaSuffix "+Tx.VIP_AreaSuffix)
+	#Log("FC.VIP: _save.vip_request_reward "+_save.vip_request_reward)
+
+	if area_text != null && area_text != "" && area_text != "null"
+		_result = Tx.VIP_RequestPrefix + display_text + Tx.VIP_AreaPrefix + area_text + Tx.VIP_AreaSuffix + " [RP +" + _save.vip_request_reward + "]"
+	else
+		_result = Tx.VIP_RequestPrefix + display_text + " [RP +" + _save.vip_request_reward + "]"
+
+
+# -----------------------------------------
+# VIP条件检测（含区域）
+# -----------------------------------------
+vip_check_current:
+	if Tx == null
+		Tx = Global("FC.Tx")
+	init_vip_system()
+
+
+	if !has_valid_vip_request()
+		_result = false
+		return
+
+	vipcond = _save.vip_request
+	#Log("FC.VIP: vip_check_current condition = " + vipcond)
+
+	if vipcond == null
+		clear_vip_request()
+		_result = false
+		return
+
+	if GetType(vipcond) != "String"
+		clear_vip_request()
+		_result = false
+		return
+
+	if vipcond == "" || vipcond == "null"
+		clear_vip_request()
+		_result = false
+		return
+
+	## There is a strange bug with the condition. I hope this helps 
+	if vipCondObj.Check() == false 
+		vipCondObj = CreateCondition(vipcond)
+
+	if vipCondObj == null
+		#Log("FC.VIP: CreateCondition failed: " + vipcond)
+		clear_vip_request()
+		_result = false
+		return
+
+	ok = vipCondObj.Check()
+	#Log("FC.VIP: vipCondObj.Check() = " + ok)
+	area_ok = true
+
+	req_area = _save.vip_request_area
+	cur_area = null
+
+	if _state != null && _state.Position != null
+		cur_area = _state.Position.stage
+
+	if req_area != null && req_area != "" && req_area != "null"
+		if cur_area == null
+			area_ok = false
+		elseif Find(req_area, cur_area) < 0
+			#Log("FC.VIP: VIP area mismatch: " + cur_area + " vs " + req_area)
+			area_ok = false
+
+	_result = ok && area_ok
+
+
+# -----------------------------------------
+# 应用VIP结果
+# -----------------------------------------
+apply_vip_current_result:
+	if Tx == null
+		Tx = Global("FC.Tx")
+
+	ok = vip_check_current() && conVisible.Check()
+	cVis = Min(1, ConditionVisibility(_save.vip_request) * 1.5 )
+	# #Log("FC.VIP: > VIP cVis : " + cVis)
+
+	if ok && cVis > 0.5
+		mp_focus.SetVisible(false)
+		reward = _save.vip_request_reward
+		if reward == null
+			reward = vip_requestScore * vipRewardScale
+
+		arisk = (_state.Detection+_state.RpBonus)/2
+		if useAbstractRisk
+			reward *= arisk
+
+		scoreVis = Max(0.5, cVis)
+		reward *= scoreVis
+
+		fans_hype += scoreVis/vip_requestScore*_settings.fans_bumpScale
+		if useAbstractRisk
+			fans_hype*=arisk
+
+		#Log("FC.VIP: Request COMPLETE! Final RP: " + reward  +", Visibility: " + cVis)
+		AddCurrentEarnRP( Ceil(reward) )
+		clear_vip_request()
+		_result = true
+	else
+		#Log("FC.VIP: Request FAILED! con:" + ok  +", cVis:" + cVis)
+		_result = false

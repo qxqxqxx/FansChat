@@ -1,0 +1,235 @@
+
+hunter_spawnDistAvg = 16
+
+if Global("hunter_chat_thread") == null
+	Global("hunter_chat_thread", CreateThread("hunter_chat_main"))
+
+if _save.lastHunterMsgTime == null
+	_save.lastHunterMsgTime = 0
+
+# -----------------------------------------
+# 文本函数
+# -----------------------------------------
+get_hunter_area_text:
+	if Tx == null
+		Tx = Global("FC.Tx")
+	if stage == "Residence"
+		_result = Tx.Hunter_Area_Residence
+	elseif stage == "Park"
+		_result = Tx.Hunter_Area_Park
+	elseif stage == "StationFront"
+		_result = Tx.Hunter_Area_StationFront
+	elseif stage == "Mansion"
+		_result = Tx.Hunter_Area_Mansion
+	elseif stage == "ShoppingMall"
+		_result = Tx.Hunter_Area_ShoppingMall
+	else
+		if stage == null
+			_result = ""
+		elseif GetType(stage) == "String"
+			_result = stage
+		else
+			_result = ""
+
+get_hunter_prefix_list:
+	if Tx == null
+		Tx = Global("FC.Tx")
+	if level <= 1
+		_result = CreateList(Tx.Hunter_Prefix_L1_0,Tx.Hunter_Prefix_L1_1,Tx.Hunter_Prefix_L1_2,Tx.Hunter_Prefix_L1_3,Tx.Hunter_Prefix_L1_4)
+	elseif level == 2
+		_result = CreateList(Tx.Hunter_Prefix_L2_0,Tx.Hunter_Prefix_L2_1,Tx.Hunter_Prefix_L2_2,Tx.Hunter_Prefix_L2_3,Tx.Hunter_Prefix_L2_4)
+	else
+		_result = CreateList(Tx.Hunter_Prefix_L3_0,Tx.Hunter_Prefix_L3_1,Tx.Hunter_Prefix_L3_2,Tx.Hunter_Prefix_L3_3,Tx.Hunter_Prefix_L3_4)
+
+get_hunter_suffix_list:
+	if Tx == null
+		Tx = Global("FC.Tx")
+	if areaName == null
+		areaName = ""
+
+	if level <= 1
+		_result = CreateList("You're at "+areaName+", aren't you?","I'm looking right toward "+areaName+".","Being like this at "+areaName+" makes it easy for me to find you.")
+	elseif level == 2
+		_result = CreateList("You're at "+areaName+" right now.","Don't move, I'm almost at "+areaName+".","At "+areaName+"... you're really conspicuous.")
+	else
+		_result = CreateList(areaName+"... I'll make my way over slowly.","Wait at "+areaName+", don't stop.","Don't move, staying like this at "+areaName+" makes it easier for me to find you.")
+get_hunter_route_msg_list:
+	_result = CreateList(Tx.Hunter_Route_0,Tx.Hunter_Route_1,Tx.Hunter_Route_2,Tx.Hunter_Route_3)
+
+get_hunter_route_msg_list:
+	_result = CreateList(Tx.Hunter_Route_0,Tx.Hunter_Route_1,Tx.Hunter_Route_2,	Tx.Hunter_Route_3)
+
+
+hunter_chat_main:
+	thread = _this
+	#Log("FC.HC : hunter_chat_main init")
+	chat = CreateMessengerChat("fanschat stalker")
+	listener = CreateListenerLocal("hunter_chat_listener")
+	route_listener = CreateListenerLocal("fanschat_route_new_hunter_listener")
+	watcher = CreateListenerLocal("hunter_hunted_event_listener")
+	
+
+hunter_chat_listener:
+	ev = GetEvent("hunter_warning")
+	if ev != null
+		#Log("hunter_warning received")
+
+		current_area = null
+		if ev.area != null
+			current_area = ev.area
+		elseif _state != null && _state.Position != null
+			current_area = _state.Position.stage
+
+		areaName = get_hunter_area_text(stage=current_area)
+
+		if ev.level == null
+			level = 2
+		else
+			level = ev.level
+
+		prefix = get_hunter_prefix_list(level=level)
+		suffix = get_hunter_suffix_list(level=level, areaName=areaName)
+
+		p = prefix[RandomInt(0, prefix.Count())]
+		s = suffix[RandomInt(0, suffix.Count())]
+
+		chat.Add(p, "Left", silent=false)
+		chat.Add(s, "Left", silent=false)
+		sndChatNotify.Play(0.25)
+		
+
+hunter_hunted_event_listener:
+	res = GetEvent("hunted_hunter_added")
+	if res != null
+		res = res[0]
+		if res.source == "FansChat"
+			#Log("FC.HC:  hunter added id=" + res.id + " stage=" + res.position.stage)
+
+			Global("fanschat_last_hunter_id", res.id)
+			Global("fanschat_need_route_hunter", true)
+
+
+#hunter_hunted_event_listener:
+#	res = GetEvent("hunted_hunter_added")
+#	if res != null
+#		res = res[0]
+#		if res.source == "FansChat"
+#			#Log("FC.HC:  hunter added id=" + res.id + " stage=" + res.position.stage)
+#			chat.Add(replace_area_tag(text=Tx.Hunter_ArrivedNear, areaName=get_hunter_area_text(stage=res.position.stage)), "Left")
+#
+#	res = GetEvent("hunted_hunter_removed")
+#	if res != null
+#		i = res.Count()
+#		while i > 0
+#			i -= 1
+#			res_info = res[i]
+#			chat.Add(Tx.Hunter_Lost, "Left")
+#			#Log("FC.HC:  hunter removed id=" + res_info.id)
+
+
+fanschat_route_new_hunter_listener:
+	if Global("fanschat_need_route_hunter") == true
+		#Log("FC.HC:  route listener active")
+
+		id = Global("fanschat_last_hunter_id")
+		targetStage = Global("fanschat_target_stage")
+		targetX = Global("fanschat_target_x")
+		targetY = Global("fanschat_target_y")
+		targetZ = Global("fanschat_target_z")
+
+		if id != null && targetStage != null
+			targetPos = CreateList(stage=targetStage, x=targetX, y=targetY, z=targetZ)
+
+			#Log("FC.HC:  try route hunter id=" + id)
+
+			npc = CreateNPC(id)
+			if npc != null
+				#Log("FC.HC:  route only this hunter id=" + id)
+				npc.ClearWaypoints()
+				npc.AddWaypoint(targetPos)
+				npc.Stopped(false)
+
+				routeMsg = get_hunter_route_msg_list()
+				chat.Add(routeMsg[RandomInt(0, routeMsg.Count())], "Left", silent=false)
+				sndChatNotify.Play(0.25)
+				PlaySoundEffect("MentalAlert", 0.5)
+
+				Global("fanschat_need_route_hunter", false)
+			else
+				#Log("FC.HC:  npc not ready yet id=" + id)
+		else
+			#Log("FC.HC:  route data missing | id=" + id + " stage=" + targetStage)
+			Global("fanschat_need_route_hunter", false)
+
+
+fanschat_spawn_listener:
+	ev = GetEvent("fanschat_spawn_hunter")
+	if ev != null
+		#Log("FC.HC:  spawn event received")
+		if _time - _save.lastFanschatHunterSpawn > 3
+			pos = ev.position
+
+			if pos != null
+				#Log("FC.HC:  spawn position ok")
+				#Log(Format("FansChat: spawn hunter | stage={0} | level={1} | anon={2:F2}", ev.area, ev.level, ev.anon))
+				#Log("FC.HC:  about to add hunter")
+				SetEvent("hunted_add_hunter", CreateList(source="FansChat", avatar_type="NewMale", position=pos))
+				#Log("FC.HC:  add hunter event sent")
+				_save.lastFanschatHunterSpawn = _time
+			else
+				#Log("FC.HC:  spawn skipped, position is null")
+		else
+			#Log("FC.HC:  spawn skipped, cooldown")
+
+
+if Global("fanschat_hunter_watch_thread") == null
+	Global("fanschat_hunter_watch_thread", CreateThread("fanschat_hunter_watch_main"))
+
+fanschat_hunter_watch_main:
+	thread = _this
+	listener = CreateListener("fanschat_hunter_watch_listener")
+
+fanschat_hunter_watch_listener:
+	res = GetEvent("hunted_hunter_added")
+	if res != null
+		res = res[0]
+		#Log("FC.HC:  hunted_hunter_added received")
+		#Log("FC.HC:  added source=" + res.source)
+		if res.source == "FansChat"
+			#Log("FC.HC:  hunter added id=" + res.id + " stage=" + res.position.stage)
+
+	res = GetEvent("hunted_hunter_removed")
+	if res != null
+		i = res.Count()
+		while i > 0
+			i -= 1
+			res_info = res[i]
+			#Log("FC.HC:  hunter removed id=" + res_info.id)
+			
+
+get_hunter_spawn_pos:
+	minDist = hunter_spawnDistAvg/2
+	maxDist = hunter_spawnDistAvg + (hunter_spawnDistAvg/2)
+	tryCount = 12
+	bestPos = null
+	bestDist = 999999
+
+	i = 0
+	while i < tryCount
+		pos = GetRandomPosition(minDist)
+		if pos != null
+			dist = Vector3Distance(_state.Position, pos)
+
+			if dist >= minDist && dist <= maxDist
+				_result = pos
+				return
+
+			if dist < bestDist
+				bestDist = dist
+				bestPos = pos
+		i = i + 1
+
+	if bestPos != null
+		_result = bestPos
+	else
+		_result = _state.Position
