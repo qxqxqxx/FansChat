@@ -61,7 +61,7 @@ get_fanschat_vip_prefix_list:
 	_result = CreateList(Tx.FansChat_VIPPrefix_0,Tx.FansChat_VIPPrefix_1,Tx.FansChat_VIPPrefix_2,Tx.FansChat_VIPPrefix_3,Tx.FansChat_VIPPrefix_4,Tx.FansChat_VIPPrefix_5)
 
 get_fanschat_vip_suffix_list:
-	_result = CreateList(Tx.FansChat_VIPsuffix_0,Tx.FansChat_VIPsuffix_1,Tx.FansChat_VIPsuffix_2,Tx.FansChat_VIPsuffix_3,Tx.FansChat_VIPsuffix_4,Tx.FansChat_VIPsuffix_5)
+	_result = CreateList(Tx.FansChat_VIPSuffix_0,Tx.FansChat_VIPSuffix_1,Tx.FansChat_VIPSuffix_2,Tx.FansChat_VIPSuffix_3,Tx.FansChat_VIPSuffix_4,Tx.FansChat_VIPSuffix_5)
 
 # -----------------------------------------
 # Start Main
@@ -77,10 +77,14 @@ load:
 	if Global("FC.fans") == null
 		Global("FC.fans",_save.fans) 
 
-	if _settings.EN
+	if _settings.CN
+		locale = CreateThread("Locale_CN")
+	elseif _settings.EN
 		locale = CreateThread("Locale_EN")
-	# elseif _settings.CN
-	# 	locale = CreateThread("Locale_CN")
+	else
+		locale = CreateThread("Locale_EN")
+	if locale == null
+		locale = CreateThread("Locale_EN")
 
 	Tx = locale.Output()
 	Global("FC.Tx", Tx)
