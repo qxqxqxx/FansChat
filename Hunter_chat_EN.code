@@ -73,7 +73,7 @@ hunter_chat_listener:
 	ev = GetEvent("hunter_warning")
 	if ev != null
 		#Log("hunter_warning received")
-
+		ev = ev[0]
 		current_area = null
 		if ev.area != null
 			current_area = ev.area
