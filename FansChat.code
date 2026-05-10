@@ -487,6 +487,8 @@ mainThread:
 		nextPayout = score
 		if score > 0
 			nextPayout = Ceil(nextPayout)
+		else
+			nextPayout = 0
 		# Log("FC.main: nextPayout: " + nextPayout)
 
 		newFans = 0
