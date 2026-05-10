@@ -648,7 +648,7 @@ mainThread:
 		area_lastSent=CreateArea(type="cylinder", stage="Apart", x=0, y=0,z=0,r=area_lastSize,h=20,outline=true,compass=false)
 		area_lastSent.SetVisible(false)
 		area_list = CreateList(area_lastSent)
-		zone_risk = CreateZone(zone_risk)
+		zone_risk = CreateZone(area_list)
 		zone_risk.SetVisible(false)
 		showAreaSafe()
 
