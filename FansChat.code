@@ -193,8 +193,8 @@ mainThread:
 		generate_vip_request()
 		sanitize_vip_request()
 		update_vip_mp()
-		penalty = GetCurrentEarnRP()-100
-		SetCurrentEarnRP = Max(0, penalty)
+		newEarnRP = GetCurrentEarnRP()-100
+		SetCurrentEarnRP(Max(0, newEarnRP))
 		chat.Add("Bribed moderators to remove the request: -100 RP.", "Right", silent=true)
 		chat.Add("Some fans were dissapointed and left.", "Right", silent=true)
 		_save.fans = Ceil(_save.fans * 0.9)
