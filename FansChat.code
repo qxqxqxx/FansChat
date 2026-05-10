@@ -47,6 +47,8 @@ sndCamera=CreateAudio("snd/theplax__camera-beep-and-click.wav")
 # Save
 if _save.fans==null
 	_save.fans = 10
+if _save.lastFanschatHunterSpawn == null
+	_save.lastFanschatHunterSpawn = 0
 
 # -----------------------------------------
 # 文本函数
@@ -353,48 +355,59 @@ mainThread:
 			
 			# Log("FC.main: lowAnon check")
 			if Random() < lowAnonTriggerChance
-				data = GetSnapshotData(imageRef)
+				if _time - _save.lastFanschatHunterSpawn > 3
+					data = GetSnapshotData(imageRef)
 
-				position = null
-				if data != null
-					if data.Camera != null
-						position = data.Camera
+					position = null
+					if data != null
+						if data.Camera != null
+							position = data.Camera
 
-				if position == null
-					if _state != null && _state.Position != null
-						position = _state.Position
+					if position == null
+						if _state != null && _state.Position != null
+							position = _state.Position
 
-				if position == null
-					position = spawnPos
+					if position == null
+						position = spawnPos
 
-				# Log("FC.main: lowAnon hunter spawn")
-				# Log("FC.main: send hunter | warnPos=" + position + " spawnPos=" + spawnPos)
+					# Log("FC.main: lowAnon hunter spawn")
+					# Log("FC.main: send hunter | warnPos=" + position + " spawnPos=" + spawnPos)
 
-				if spawnPos != null
-					# Log("FC.main: send hunter | spawn stage=" + spawnPos.stage + " x=" + spawnPos.x + " y=" + spawnPos.y + " z=" + spawnPos.z)
-				else
-					# Log("FC.main: send hunter | spawnPos is null")
-				
-				# Log("FC.main: about to send hunter_warning")
-				SetEvent("hunter_warning", CreateList(position=position, area=_state.Position.stage, level=hunterLevel, anon=anon))
-				# Log("FC.main: hunter_warning sent")
-
-				if spawnPos != null
 					if spawnPos != null
-						if position != null
-							Global("fanschat_target_stage", position.stage)
-							Global("fanschat_target_x", position.x)
-							Global("fanschat_target_y", position.y)
-							Global("fanschat_target_z", position.z)
-							# Log("FC.main: FansChat: saved target stage=" + position.stage + " x=" + position.x + " y=" + position.y + " z=" + position.z)
-						else
-							# Log("FC.main: direct add hunter")
-							# Log("FC.main: FansChat: save target skipped, position null")
-						SetEvent("hunted_add_hunter", CreateList(source="FansChat", avatar_type="NewMale", position=spawnPos))
+						# Log("FC.main: send hunter | spawn stage=" + spawnPos.stage + " x=" + spawnPos.x + " y=" + spawnPos.y + " z=" + spawnPos.z)
 					else
-						# Log("FC.main: direct add hunter skipped: spawnPos null")
+						# Log("FC.main: send hunter | spawnPos is null")
+
+					warningArea = null
+					if position != null
+						warningArea = position.stage
+					if warningArea == null
+						if _state != null && _state.Position != null
+							warningArea = _state.Position.stage
+
+					# Log("FC.main: about to send hunter_warning")
+					SetEvent("hunter_warning", CreateList(position=position, area=warningArea, level=hunterLevel, anon=anon))
+					# Log("FC.main: hunter_warning sent")
+
+					if spawnPos != null
+						if spawnPos != null
+							if position != null
+								Global("fanschat_target_stage", position.stage)
+								Global("fanschat_target_x", position.x)
+								Global("fanschat_target_y", position.y)
+								Global("fanschat_target_z", position.z)
+								# Log("FC.main: FansChat: saved target stage=" + position.stage + " x=" + position.x + " y=" + position.y + " z=" + position.z)
+							else
+								# Log("FC.main: direct add hunter")
+								# Log("FC.main: FansChat: save target skipped, position null")
+							SetEvent("hunted_add_hunter", CreateList(source="FansChat", avatar_type="NewMale", position=spawnPos))
+							_save.lastFanschatHunterSpawn = _time
+						else
+							# Log("FC.main: direct add hunter skipped: spawnPos null")
+					else
+						# Log("FC.main: fanschat_spawn_hunter skipped: spawnPos null")
 				else
-					# Log("FC.main: fanschat_spawn_hunter skipped: spawnPos null")
+					# Log("FC.main: lowAnon hunter spawn skipped: cooldown")
 
 		elseif Random() < hunterChance
 			data = GetSnapshotData(imageRef)
