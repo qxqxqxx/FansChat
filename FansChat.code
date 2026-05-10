@@ -703,7 +703,7 @@ mainThread:
 			Global("FC.scoreTable",scoreTable)
 
 		if Global("FC.zone_Risk") == null
-			Global("FC.zone_Risk",zone_Risk)
+			Global("FC.zone_Risk",zone_risk)
 
 		if Global("FC.viewCurrent") == null
 			Global("FC.viewCurrent", viewCurrent)
