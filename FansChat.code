@@ -431,21 +431,24 @@ mainThread:
 			else
 				# Log("FC.main: send hunter | spawnPos is null")
 
-			# Log("FC.main: about to send hunter_warning")
-			# if spawnPos != null
-			# 	if position != null
-			# 		Global("fanschat_target_stage", position.stage)
-			# 		Global("fanschat_target_x", position.x)
-			# 		Global("fanschat_target_y", position.y)
-			# 		Global("fanschat_target_z", position.z)
-			# 		Log("FC.main: FansChat: saved target stage=" + position.stage + " x=" + position.x + " y=" + position.y + " z=" + position.z)
-			# 	else
-			# 		Log("FC.main: FansChat: save target skipped, position null")
-			# 	Log("FC.main: direct add hunter")
-			# 	SetEvent("hunted_add_hunter", CreateList(source="FansChat", avatar_type="NewMale", position=spawnPos))
-			# else
-			# 	Log("FC.main: direct add hunter skipped: spawnPos null")
-			# Log("FC.main: hunter_warning sent")
+			warningArea = null
+			if position != null
+				warningArea = position.stage
+			if warningArea == null
+				if _state != null && _state.Position != null
+					warningArea = _state.Position.stage
+
+			SetEvent("hunter_warning", CreateList(position=position, area=warningArea, level=hunterLevel, anon=anon))
+
+			if position != null
+				Global("fanschat_target_stage", position.stage)
+				Global("fanschat_target_x", position.x)
+				Global("fanschat_target_y", position.y)
+				Global("fanschat_target_z", position.z)
+				# Log("FC.main: FansChat: saved target stage=" + position.stage + " x=" + position.x + " y=" + position.y + " z=" + position.z)
+			else
+				# Log("FC.main: FansChat: save target skipped, position null")
+
 			rand = Random()
 			if rand>0.5
 				SetEvent("hunted_alert_hunters", CreateList(count=1,position=_state.Position)) #args is optional, SetEvent("hunted_alert_hunters") works too
