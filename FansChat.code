@@ -278,7 +278,7 @@ mainThread:
 		
 			if totalRisk <= 0.5
 				hunterChance = 0.2 * (totalRisk / 0.5)
-			elseif totalRisk >= 1.2
+			elseif totalRisk >= 1.0
 				hunterChance = 0.8
 			else
 				t = (totalRisk - 0.5) / 0.7

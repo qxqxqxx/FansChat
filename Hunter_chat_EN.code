@@ -67,6 +67,7 @@ hunter_chat_main:
 	listener = CreateListenerLocal("hunter_chat_listener")
 	route_listener = CreateListenerLocal("fanschat_route_new_hunter_listener")
 	watcher = CreateListenerLocal("hunter_hunted_event_listener")
+	spawn_listener = CreateListenerLocal("fanschat_spawn_listener")
 	
 
 hunter_chat_listener:
